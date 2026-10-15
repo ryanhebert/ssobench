@@ -2,7 +2,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/ryanhebert/ssobench?label=latest)](https://github.com/ryanhebert/ssobench/releases/latest)
 [![CI](https://github.com/ryanhebert/ssobench/actions/workflows/ci.yml/badge.svg)](https://github.com/ryanhebert/ssobench/actions/workflows/ci.yml)
-[![Downloads](https://img.shields.io/github/downloads/ryanhebert/ssobench/total?label=downloads)](https://github.com/ryanhebert/ssobench/releases)
+[![Downloads](https://img.shields.io/github/downloads/ryanhebert/ssobench/total?label=downloads&color=blue)](https://github.com/ryanhebert/ssobench/releases)
 [![License](https://img.shields.io/github/license/ryanhebert/ssobench)](LICENSE)
 
 **See exactly what your identity provider sends, and what is wrong with it.**
