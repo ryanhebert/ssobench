@@ -43,12 +43,12 @@ Checksums, software bills of materials and earlier versions are on the
 **Windows:** run the downloaded `.exe`. The binaries are not code-signed yet, so SmartScreen may warn
 the first time; choose **More info**, then **Run anyway**.
 
-**macOS and Linux:** download, extract and run in one step (use the file name for your system):
+**macOS and Linux:** download, extract and run, with the file name for your system from the table:
 
 ```
-curl -L https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-macos-arm64.tar.gz \
-  | tar xz ssobench
-./ssobench
+f=ssobench-macos-arm64.tar.gz
+curl -LO https://github.com/ryanhebert/ssobench/releases/latest/download/$f
+tar xzf $f ssobench && ./ssobench
 ```
 
 If you downloaded the archive in a browser on macOS instead, clear the quarantine before running it:
