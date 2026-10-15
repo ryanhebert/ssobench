@@ -110,3 +110,24 @@ func TestListenOnBusyPort(t *testing.T) {
 		t.Errorf("chosen busy port: %v", err)
 	}
 }
+
+func TestAutoTLS(t *testing.T) {
+	for _, c := range []struct {
+		addr                     string
+		tlsSet, cert, base, want bool
+	}{
+		{"127.0.0.1:8080", false, false, false, false}, // localhost: plain HTTP
+		{"[::1]:8080", false, false, false, false},
+		{"localhost:8080", false, false, false, false},
+		{"0.0.0.0:8080", false, false, false, true}, // network: HTTPS
+		{"192.0.2.10:8080", false, false, false, true},
+		{":8080", false, false, false, true},
+		{"0.0.0.0:8080", true, false, false, false}, // -tls given, either way: as given
+		{"0.0.0.0:8080", false, true, false, false}, // -cert: already HTTPS
+		{"0.0.0.0:8080", false, false, true, false}, // -base-url: a proxy terminates TLS
+	} {
+		if got := autoTLS(c.addr, c.tlsSet, c.cert, c.base); got != c.want {
+			t.Errorf("autoTLS(%q, tls=%v cert=%v base=%v) = %v, want %v", c.addr, c.tlsSet, c.cert, c.base, got, c.want)
+		}
+	}
+}

@@ -174,7 +174,13 @@ ID token or from UserInfo.
 
 ## HTTPS
 
-Most identity providers accept `http://localhost` redirect URIs. If yours requires HTTPS:
+On `localhost`, SSOBench serves plain HTTP. Browsers treat `http://localhost` as secure, and most
+identity providers accept it. When it listens on a network address instead (`-listen 0.0.0.0:8080`,
+or any address that isn't loopback), it serves HTTPS with a self-signed certificate by default, so
+tokens don't cross the network in the clear. `-tls=false` turns that off, and `-cert`, `-tls` or
+`-base-url` (for a reverse proxy that handles TLS) each leave the choice to you.
+
+To use HTTPS on `localhost` too, or your own certificate:
 
 ```
 ssobench -tls                                  # self-signed certificate, kept beside the state file
@@ -212,7 +218,7 @@ no key to check them against.
 | `-port` | Port to listen on. Default: `8080`, or the next free port if 8080 is busy. Set it to keep the same port every time, since the URLs you register include it |
 | `-listen` | Address to listen on. Default: `127.0.0.1:<port>` |
 | `-base-url` | Public URL to put in the registered URLs, for a reverse proxy. Without it, they follow the address in the browser |
-| `-tls` | Serve HTTPS with a generated self-signed certificate |
+| `-tls` | Serve HTTPS with a generated self-signed certificate. On by default when listening on a network address without `-cert` or `-base-url`; `-tls=false` turns it off |
 | `-cert`, `-key` | Serve HTTPS with your own certificate |
 | `-skew` | Allowed clock skew when checking lifetimes. Default: `2m` |
 | `-no-open` | Do not open a browser on start |

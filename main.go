@@ -78,7 +78,7 @@ func serve(args []string) error {
 	port := fs.Int("port", 8080, "port to listen on; if you do not set it and 8080 is busy, the next free port is used")
 	listen := fs.String("listen", "", "address to listen on (default 127.0.0.1:<port>)")
 	baseURL := fs.String("base-url", "", "public URL of this tool, if it differs from the listen address\n(for example behind a reverse proxy)")
-	useTLS := fs.Bool("tls", false, "serve HTTPS with a generated self-signed certificate")
+	useTLS := fs.Bool("tls", false, "serve HTTPS with a generated self-signed certificate. On by default when\n-listen is a network address (not localhost) and -cert and -base-url are not set;\n-tls=false turns it off")
 	certFile := fs.String("cert", "", "TLS certificate file (PEM); implies HTTPS. A renewed certificate\nis picked up within a minute, without a restart")
 	keyFile := fs.String("key", "", "TLS private key file (PEM)")
 	skew := fs.Duration("skew", 2*time.Minute, "allowed clock skew when checking token lifetimes")
@@ -110,7 +110,13 @@ func serve(args []string) error {
 	if err != nil {
 		return err
 	}
+	set := map[string]bool{}
+	fs.Visit(func(f *flag.Flag) { set[f.Name] = true })
 	https := *useTLS || *certFile != ""
+	if autoTLS(addr, set["tls"], *certFile != "", *baseURL != "") {
+		https = true
+		log.Printf("Listening on a network address, so serving HTTPS with a self-signed certificate. Use -cert for a trusted certificate, or -tls=false for plain HTTP.")
+	}
 	// The URL to open (and print). Unless -base-url pins it, the URLs SSOBench
 	// hands to the IdP follow whatever address the browser used.
 	host, p, _ := net.SplitHostPort(addr)
@@ -453,4 +459,14 @@ func listenOn(addr string, fallback bool) (net.Listener, string, error) {
 func addrInUse(err error) bool {
 	var errno syscall.Errno
 	return errors.Is(err, syscall.EADDRINUSE) || (runtime.GOOS == "windows" && errors.As(err, &errno) && errno == 10048)
+}
+
+// autoTLS reports whether to serve HTTPS when nobody said: on a network
+// address, where plain HTTP would send tokens across the network in the
+// clear and browsers refuse passkeys. Not on localhost, where browsers treat
+// HTTP as secure and a self-signed certificate would only add a warning;
+// not when -tls was given either way, or with -cert; and not with
+// -base-url, which usually means a reverse proxy that terminates TLS.
+func autoTLS(addr string, tlsSet, certSet, baseURLSet bool) bool {
+	return !tlsSet && !certSet && !baseURLSet && !loopback(addr)
 }
