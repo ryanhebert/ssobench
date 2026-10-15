@@ -498,9 +498,12 @@ func (s *Server) oauthConformance(w http.ResponseWriter, r *http.Request) {
 	default:
 		add(check.Meh("Advertised PKCE methods", "code_challenge_methods_supported is missing", "Clients use this to know PKCE is supported."))
 	}
+	// OAuth 2.1 removes response types that return an access token from the
+	// authorization endpoint (token, code token, ...). OpenID Connect's
+	// code id_token returns none, so it is allowed.
 	for _, rt := range p.ResponseTypes {
-		if strings.Contains(rt, "token") {
-			add(check.Meh("Advertised response types", "includes "+rt, "OAuth 2.1 removes the implicit and hybrid flows. Advertise code only."))
+		if slices.Contains(strings.Fields(rt), "token") {
+			add(check.Meh("Advertised response types", "includes "+rt, "OAuth 2.1 removes response types that return an access token from the authorization endpoint. Stop advertising "+rt+"."))
 			break
 		}
 	}
@@ -545,8 +548,8 @@ func (s *Server) oauthConformance(w http.ResponseWriter, r *http.Request) {
 		"OAuth 2.1 forbids plain. Accept only S256.")
 	probe("Implicit flow removed", oidc.AuthOptions{ResponseType: "token", Resource: resource}, "refused response_type=token", "the server returned a token for response_type=token",
 		"OAuth 2.1 removes the implicit flow. Turn it off for this client.")
-	probe("Hybrid flow removed", oidc.AuthOptions{ResponseType: "code id_token", Resource: resource}, "refused response_type=code id_token", "the server returned a token for response_type=code id_token",
-		"Return tokens only from the token endpoint.")
+	probe("Hybrid flow with an access token removed", oidc.AuthOptions{ResponseType: "code token", Resource: resource}, "refused response_type=code token", "the server returned a code for response_type=code token, which also hands out an access token",
+		"OAuth 2.1 removes response types that return an access token from the authorization endpoint. Turn off code token for this client.")
 	for _, v := range redirectVariants(cfg.RedirectURI) {
 		probe("Exact redirect URI match ("+v.name+")", oidc.AuthOptions{RedirectURI: v.uri, Resource: resource}, "refused "+v.uri, "",
 			"OAuth 2.1 requires an exact redirect URI match. Remove wildcards and loose matching for this client.")

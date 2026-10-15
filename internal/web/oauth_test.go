@@ -35,6 +35,8 @@ type fakeAS struct {
 	noRotation     bool // refresh tokens are not rotated
 	tokenEndpoint5 bool // the token endpoint answers 503 to everything
 	advertisePlain bool // the metadata lists the plain PKCE method
+	oidcHybrid     bool // OpenID Connect code id_token is offered and accepted, as OAuth 2.1 allows
+	laxCodeToken   bool // response_type=code token is accepted, which OAuth 2.1 removes
 }
 
 type asCode struct {
@@ -60,7 +62,7 @@ func newFakeAS(t *testing.T, clientID, secret string) *fakeAS {
 		json.NewEncoder(w).Encode(map[string]any{
 			"issuer": iss, "authorization_endpoint": iss + "/authorize", "token_endpoint": iss + "/token",
 			"jwks_uri": iss + "/jwks", "introspection_endpoint": iss + "/introspect",
-			"response_types_supported": []string{"code"}, "code_challenge_methods_supported": methods,
+			"response_types_supported": responseTypes(as), "code_challenge_methods_supported": methods,
 			"grant_types_supported":                          []string{"authorization_code", "refresh_token", "client_credentials"},
 			"authorization_response_iss_parameter_supported": true,
 		})
@@ -80,6 +82,17 @@ func newFakeAS(t *testing.T, clientID, secret string) *fakeAS {
 	return as
 }
 
+func responseTypes(as *fakeAS) []string {
+	rts := []string{"code"}
+	if as.oidcHybrid {
+		rts = append(rts, "code id_token")
+	}
+	if as.laxCodeToken {
+		rts = append(rts, "code token")
+	}
+	return rts
+}
+
 func (as *fakeAS) authorize(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	ru := q.Get("redirect_uri")
@@ -92,7 +105,7 @@ func (as *fakeAS) authorize(w http.ResponseWriter, r *http.Request) {
 		v.Set("iss", as.URL)
 		http.Redirect(w, r, ru+"?"+v.Encode(), http.StatusFound)
 	}
-	if q.Get("response_type") != "code" {
+	if rt := q.Get("response_type"); rt != "code" && !(rt == "code id_token" && as.oidcHybrid) && !(rt == "code token" && as.laxCodeToken) {
 		back(url.Values{"error": {"unsupported_response_type"}})
 		return
 	}
@@ -288,7 +301,9 @@ func TestOAuthAppEndToEnd(t *testing.T) {
 		t.Error("machine token result: rerun should get another token, and nothing should say Signed in")
 	}
 
-	// Conformance, against a server that follows the rules.
+	// Conformance, against a server that follows the rules. OpenID Connect's
+	// code id_token is allowed: it returns no access token.
+	as.oidcHybrid = true
 	loc = oauthStep(t, c, "POST", ts.URL+"/apps/"+id+"/conformance")
 	_, page = get(t, c, ts.URL+loc)
 	if failed(page) {
@@ -297,11 +312,15 @@ func TestOAuthAppEndToEnd(t *testing.T) {
 	if !strings.Contains(page, "All tested OAuth 2.1 rules met") || strings.Contains(page, "No user was signed in") {
 		t.Error("conformance headline wrong")
 	}
-	for _, name := range []string{"PKCE required", "Implicit flow removed", "Exact redirect URI match (trailing slash)", "Exact redirect URI match (another host)", "Password grant removed"} {
+	for _, name := range []string{"PKCE required", "Implicit flow removed", "Hybrid flow with an access token removed", "Exact redirect URI match (trailing slash)", "Exact redirect URI match (another host)", "Password grant removed"} {
 		if got := checkLine(page, name); got != "pass" {
 			t.Errorf("conformance %s: %q, want pass", name, got)
 		}
 	}
+	if got := checkLine(page, "Advertised response types"); got != "" {
+		t.Errorf("code id_token advertised: %q, want no finding", got)
+	}
+	as.oidcHybrid = false
 
 	// Guided checks.
 	if _, page = runOAuth(t, c, ts.URL, "/apps/"+id+"/check/wrongverifier"); !strings.Contains(page, "Refused, as it should be") || !strings.Contains(page, "Run again") {
@@ -330,7 +349,7 @@ func TestOAuthCatchesLaxServers(t *testing.T) {
 	if got := checkLine(page, "Refresh token rotation"); got != "info" {
 		t.Errorf("no rotation for a confidential client: %q, want info", got)
 	}
-	as.advertisePlain = true
+	as.advertisePlain, as.laxCodeToken = true, true
 	loc := oauthStep(t, c, "POST", ts.URL+"/apps/"+id+"/conformance")
 	_, page = get(t, c, ts.URL+loc)
 	if checkLine(page, "Exact redirect URI match (trailing slash)") != "fail" {
@@ -339,7 +358,13 @@ func TestOAuthCatchesLaxServers(t *testing.T) {
 	if got := checkLine(page, "Advertised PKCE methods"); got != "fail" {
 		t.Errorf("advertising plain PKCE: %q, want fail (OAuth 2.1 forbids it)", got)
 	}
-	as.advertisePlain = false
+	if got := checkLine(page, "Hybrid flow with an access token removed"); got != "fail" {
+		t.Errorf("code token accepted: %q, want fail", got)
+	}
+	if got := checkLine(page, "Advertised response types"); got != "warn" {
+		t.Errorf("code token advertised: %q, want warn", got)
+	}
+	as.advertisePlain, as.laxCodeToken = false, false
 
 	// A broken token endpoint is not mistaken for a refusal.
 	as.laxRedirect, as.laxCodeReuse = false, false

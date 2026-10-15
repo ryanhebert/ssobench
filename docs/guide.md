@@ -61,11 +61,13 @@ For a client that gets access tokens for an API rather than signing people in:
      introspection endpoint about the token, tests refresh token rotation, and checks that the code
      cannot be redeemed twice.
    - **Machine token** uses the client credentials grant.
-   - **OAuth 2.1 conformance** probes the server without signing in: PKCE must be required, and `plain`
-     PKCE, the implicit and hybrid flows and the password grant must be refused. Redirect URIs must
-     match exactly. OAuth 2.1 is still an IETF draft, and this is not a certification suite. A server
-     that shows its sign-in page before validating the request can't be judged this way; those probes
-     are listed as not tested, and the guided PKCE checks below cover them with a real sign-in.
+- **OAuth 2.1 conformance** probes the server without signing in: PKCE must be required, and `plain`
+     PKCE, the password grant, the implicit grant and any response type that returns an access token
+     from the authorization endpoint (such as `code token`) must be refused. Redirect URIs must
+     match exactly. OAuth 2.1 is still an IETF draft, and this is not a certification suite. A
+     server that shows its sign-in page before validating the request can't be judged this way;
+     those probes are listed as not tested, and the guided PKCE checks below cover them with a real
+     sign-in.
    - **Sign-in without PKCE** and **Wrong PKCE verifier** check that the server refuses both.
 
 These probes and **Test sign-in**'s code reuse check send deliberately invalid requests to your
