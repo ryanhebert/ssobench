@@ -5,8 +5,10 @@ on:
     branches: [main]
   pull_request:
   schedule:
-    # Weekly, so a newly published vulnerability shows up without a push.
+    # Weekly, so a newly published vulnerability shows up without a push,
+    # and the fuzz targets get a real run.
     - cron: "17 6 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -39,3 +41,31 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+
+  # The verifiers written on the standard library: five minutes of fuzzing
+  # each, weekly. A failure uploads the input that broke them.
+  fuzz:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: ./internal/oidc
+            target: FuzzJWT
+          - package: ./internal/webauthn
+            target: FuzzVerifyRegistration
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: go.mod
+      - run: go test -run '^$' -fuzz "^${TARGET}$" -fuzztime 5m "${PACKAGE}"
+        env:
+          TARGET: ${{ matrix.target }}
+          PACKAGE: ${{ matrix.package }}
+      - if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fuzz-${{ matrix.target }}
+          path: ${{ matrix.package }}/testdata/fuzz

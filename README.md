@@ -28,9 +28,9 @@ This is the tool I wanted to hand them.
   v1.5), each flagged with the fix.
 - Catch configuration drift: list the attributes an application needs, and every later sign-in that
   lacks one fails.
-- Check an authorization server against OAuth 2.1 (an IETF draft): PKCE required, the implicit and
-  password grants refused, and tokens for services through client credentials, checked the way an
-  API would check them.
+- Check an authorization server against OAuth 2.1 (an IETF draft): PKCE required, the implicit grant
+  refused, the password grant refused for this client, and tokens for services through client
+  credentials, checked against the resource you name.
 - Test the user lifecycle: SCIM provisioning, roles, sessions and single logout.
 - Give a test user a realistic sign-in page, and get a reference code back when it fails.
 - Attach a step-by-step log of any attempt to a support ticket.
@@ -97,8 +97,9 @@ how. To report a vulnerability, see [SECURITY.md](SECURITY.md).
 - Two direct dependencies, both for XML signatures. Everything else is written on the standard
   library so each check can explain what it found, at the cost of verification code that has to be
   tested hard.
-- Checks run only on signed content: the assertion or token the signature covers, never the document
-  around it.
+- Identity, attribute, audience and lifetime checks read only the assertion the signature covers.
+  Envelope fields such as Destination and Status are checked as received, and unverified content is
+  labeled.
 - It plays the application. A mock identity provider is out of scope for now.
 
 More in the [guide](docs/guide.md#design-decisions).
@@ -109,7 +110,7 @@ AI coding agents write the code, working from [AGENTS.md](AGENTS.md), which hold
 under. I design it, decide what each check tests and how it explains a failure,
 [set the dependency limits and the tests](docs/guide.md#design-decisions), and test it with real
 sign-ins. Every change runs against end-to-end tests with in-process SAML and OpenID Connect fakes,
-and the JWT and passkey verifiers are fuzz-tested. The first commit is a squash of earlier
+and the JWT and passkey verifiers have Go fuzz targets that run weekly in CI. The first commit is a squash of earlier
 agent-written work; nothing here was written by hand.
 
 ## Contributing

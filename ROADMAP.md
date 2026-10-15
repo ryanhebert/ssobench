@@ -3,7 +3,7 @@
 SSOBench aims to test what an identity provider sends to the applications that trust it, over SAML,
 OpenID Connect, OAuth and SCIM, and to explain each result in plain language.
 
-## In v0.1.0
+## Shipped (v0.1.x)
 
 ### SAML
 
@@ -29,8 +29,8 @@ OpenID Connect, OAuth and SCIM, and to explain each result in plain language.
 - A scope and claim inspector: scopes requested, granted, and the claims each brought
 - RP-initiated and back-channel logout, with logout token validation
 - OAuth 2.1 app type: access token validation, refresh token rotation, introspection (RFC 7662),
-  client credentials, and probes that PKCE is required and the implicit and password grants are
-  refused
+  client credentials, and probes that PKCE is required and that the implicit grant, and the password
+  grant for this client, are refused
 
 ### Behaving like an application
 
@@ -49,6 +49,7 @@ OpenID Connect, OAuth and SCIM, and to explain each result in plain language.
 - A step-by-step log for every attempt, downloadable as text
 - A `decode` command and page for JWTs and SAML messages
 - Optional console sign-in with a password or passkeys
+- The next free port when 8080 is busy, and HTTPS by default on a network address
 
 ## Planned
 

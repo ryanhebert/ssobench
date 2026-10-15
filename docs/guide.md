@@ -56,13 +56,14 @@ For a client that gets access tokens for an API rather than signing people in:
    also name the API, sent as the RFC 8707 `resource`, and the scopes to request.
 2. Register the **Redirect URI** shown under **Set up**.
 3. On the app's **Overview**, run any of these:
-   - **Test sign-in** runs the authorization code flow with PKCE, then validates the access token
-     the way an API would (signature, `typ`, issuer, audience, lifetime, scopes). It also asks the
+   - **Test sign-in** runs the authorization code flow with PKCE, then checks the access token the
+     way an API would: signature, issuer, lifetime, scopes, and the audience against the resource you
+     name. Its `typ` is reported, not required. It also asks the
      introspection endpoint about the token, tests refresh token rotation, and checks that the code
      cannot be redeemed twice.
    - **Machine token** uses the client credentials grant.
    - **OAuth 2.1 conformance** probes the server without signing in: PKCE must be required, and `plain`
-     PKCE, the password grant, the implicit grant and any response type that returns an access token
+     PKCE, the password grant (for this client), the implicit grant and any response type that returns an access token
      from the authorization endpoint (such as `code token`) must be refused. Redirect URIs must
      match exactly. OAuth 2.1 is still an IETF draft, and this is not a certification suite. A
      server that shows its sign-in page before validating the request can't be judged this way;
@@ -257,11 +258,12 @@ On Windows, use a service wrapper such as [WinSW](https://github.com/winsw/winsw
 - Local by default. SSOBench listens on `localhost` by default, so tokens from a real tenant
   never pass through someone else's server. To test with other people, you run it on a server of
   your own.
-- Only signed content is trusted. Checks read the assertion or token the signature covers, never the
-  document around it, and unverified content is labeled as such.
+- Only signed content is trusted for identity. Identity, attribute, audience and lifetime checks read
+  only the assertion or token the signature covers. Envelope fields such as Destination and Status
+  are checked as received, and unverified content is labeled.
 - Two direct dependencies. Everything else is written on the standard library so each check can
   explain what it found. The cost is verification code that has to be tested hard, which is why the
-  JWT and passkey verifiers are fuzz-tested.
+  JWT and passkey verifiers have Go fuzz targets, run weekly in CI.
 - It plays the application, not the identity provider. Testing an application without a real
   identity provider is out of scope for now.
 
@@ -282,9 +284,10 @@ in place of a production one.
   - For unattended setups, a password can also be given at start with `-admin-password-file` or the
     `SSOBENCH_ADMIN_PASSWORD` environment variable.
   - If you are locked out, start SSOBench once with `-reset-console-sign-in`.
-- Signatures: SAML checks run only on the content the signature covers, the standard defense against
-  signature wrapping. Tests replay the signature-wrapping shapes from Somorovsky et al., "On Breaking
-  SAML" (2012), at both the assertion and the response level, and the comment-truncation bug
+- Signatures: identity, attribute, audience and lifetime checks read only the assertion the
+  signature covers, the standard defense against signature wrapping. Envelope fields such as
+  Destination and Status are checked as received. Tests cover XSW1, XSW2 and seven assertion-level
+  wrapping shapes, after Somorovsky et al., "On Breaking SAML" (2012), and the comment-truncation bug
   (CVE-2017-11427).
 - Decryption: a response that fails to decrypt gives the same message whatever the cause, so its
   error messages are not a padding or Bleichenbacher oracle. AES-CBC and RSA PKCS#1 v1.5 are still
@@ -326,7 +329,7 @@ Besides the Go standard library, SSOBench uses two libraries:
 The OpenID Connect, OAuth, SCIM and passkey code is written on the standard library, so each check
 can explain exactly what it found. That includes JWT and passkey verification. Both refuse
 `alg=none` and any mismatch between the algorithm and the key (its type, its curve, or the algorithm
-a published key declares), and both are fuzz-tested. If a check accepts something it should not,
+a published key declares), and both have Go fuzz targets that run weekly in CI. If a check accepts something it should not,
 report it as described in [SECURITY.md](../SECURITY.md). CI and the release build run `govulncheck`.
 
 [ROADMAP.md](../ROADMAP.md) lists what is done and what is planned. To contribute, see
