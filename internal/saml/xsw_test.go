@@ -137,3 +137,78 @@ func TestCommentInSignedValue(t *testing.T) {
 		t.Fatalf("NameID read as %q, want the whole signed value alice@example.com.evil.com", got)
 	}
 }
+
+// buildSignedResponse signs the whole Response, with an unsigned assertion
+// inside, as some identity providers do.
+func buildSignedResponse(t *testing.T, ks dsig.X509KeyStore) *etree.Document {
+	t.Helper()
+	rd := etree.NewDocument()
+	err := rd.ReadFromString(fmt.Sprintf(`<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_r1" Version="2.0" IssueInstant="%s" Destination="%s" InResponseTo="_req1"><saml:Issuer>%s</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status>%s</samlp:Response>`,
+		now.Format(time.RFC3339), sp.ACSURL, idpID, assertionXML(sp.EntityID)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := dsig.NewDefaultSigningContext(ks)
+	ctx.Canonicalizer = dsig.MakeC14N10ExclusiveCanonicalizerWithPrefixList("")
+	signed, err := ctx.SignEnveloped(rd.Root())
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := etree.NewDocument()
+	out.SetRoot(signed)
+	return out
+}
+
+// XSW1 and XSW2 (Somorovsky et al.): the signature covers the Response, and
+// the attacker builds a new Response around it with mallory's assertion,
+// keeping the original signed Response inside the copied signature (XSW1)
+// or beside it (XSW2).
+func TestResponseSignatureWrapping(t *testing.T) {
+	ks := dsig.RandomKeyStoreForTest()
+	c := cert(t, ks)
+
+	// The control: the response-signed form verifies.
+	raw, _ := buildSignedResponse(t, ks).WriteToBytes()
+	if rep := inspectWith(t, raw, Expect{}, c); !rep.Verified {
+		t.Fatalf("control did not verify: %v", failures(rep.Checks))
+	}
+
+	for _, v := range []struct {
+		name, id string
+		inside   bool // the original goes inside the copied signature (XSW1), else beside it (XSW2)
+	}{
+		{"XSW1, new ID", "_evil", true},
+		{"XSW1, same ID", "_r1", true},
+		{"XSW2, new ID", "_evil", false},
+		{"XSW2, same ID", "_r1", false},
+	} {
+		t.Run(v.name, func(t *testing.T) {
+			orig := buildSignedResponse(t, ks).Root()
+			evil := orig.Copy()
+			sig := children(evil, "Signature")[0]
+			evil.RemoveChild(sig)
+			evil.CreateAttr("ID", v.id)
+			for _, n := range descendants(evil, "NameID", true) {
+				n.SetText("mallory@example.com")
+			}
+			if v.inside {
+				sig.AddChild(orig)
+				evil.AddChild(sig)
+			} else {
+				evil.AddChild(orig)
+				evil.AddChild(sig)
+			}
+			doc := etree.NewDocument()
+			doc.SetRoot(evil)
+			raw, _ := doc.WriteToBytes()
+
+			rep := inspectWith(t, raw, Expect{}, c)
+			if rep.Verified && rep.Assertion.Subject.NameID.Value == "mallory@example.com" {
+				t.Fatal("accepted the wrapped response for mallory as verified")
+			}
+			if len(failures(rep.Checks)) == 0 {
+				t.Fatal("no failure: the sign-in would pass")
+			}
+		})
+	}
+}
