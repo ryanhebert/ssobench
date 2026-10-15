@@ -61,7 +61,7 @@ For a client that gets access tokens for an API rather than signing people in:
      introspection endpoint about the token, tests refresh token rotation, and checks that the code
      cannot be redeemed twice.
    - **Machine token** uses the client credentials grant.
-- **OAuth 2.1 conformance** probes the server without signing in: PKCE must be required, and `plain`
+   - **OAuth 2.1 conformance** probes the server without signing in: PKCE must be required, and `plain`
      PKCE, the password grant, the implicit grant and any response type that returns an access token
      from the authorization endpoint (such as `code token`) must be refused. Redirect URIs must
      match exactly. OAuth 2.1 is still an IETF draft, and this is not a certification suite. A
