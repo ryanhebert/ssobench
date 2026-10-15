@@ -34,8 +34,14 @@ checksum:
 # A software bill of materials (SPDX) for each binary, made with syft.
 sboms:
   - artifacts: binary
+    documents:
+      - '{{ .ProjectName }}-{{ if eq .Os "darwin" }}macos{{ else }}{{ .Os }}{{ end }}-{{ .Arch }}.sbom.json'
 
 release:
+  header: |
+    Download the file for your system below. Windows: the `.exe`. macOS and Linux: the `.tar.gz`,
+    or see the [quick start](https://github.com/ryanhebert/ssobench#quick-start) for a one-line
+    command. The binaries are not code-signed yet.
   # The bare Windows binary carries no licence files, so attach them.
   extra_files:
     - glob: LICENSE
@@ -43,5 +49,6 @@ release:
 
 changelog:
   sort: asc
+  format: "{{ .Message }}"
   filters:
     exclude: ["^docs:", "^test:", "^chore:"]

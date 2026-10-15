@@ -15,15 +15,14 @@ or failed, each with a suggested fix.
   <img alt="A SAML sign-in result: one warning with the fix, then every attribute received" src="docs/images/result-light.png">
 </picture>
 
-It supports SAML 2.0, OpenID Connect and OAuth 2.1 (an IETF draft). It checks signatures, audience,
-recipient, issuer, lifetimes and clock skew, replays, weak algorithms, certificate expiry, and a
-signing certificate rotated since the metadata was loaded. Beyond single responses, it behaves like
-a real application: each app has a sign-in page, user accounts that SCIM can provision, roles,
-sessions and single logout. Every attempt gets a step-by-step log you can download and attach to a
-support ticket.
-
-It is one executable for Windows, Linux or macOS, with no database. It listens on `localhost` by
-default, so tokens from a real tenant stay on your machine.
+- Works with SAML 2.0, OpenID Connect and OAuth 2.1 (an IETF draft).
+- Checks signatures, audience, recipient, issuer, lifetimes and clock skew, replays, weak algorithms,
+  certificate expiry, and signing certificates rotated since the metadata was loaded.
+- Behaves like a real application, not just a decoder: each app gets a sign-in page, user accounts
+  that SCIM can provision, roles, sessions and single logout.
+- Logs every attempt step by step, ready to download and attach to a support ticket.
+- Runs as one executable on Windows, macOS or Linux, with no database. It listens on `localhost` by
+  default, so tokens from a real tenant stay on your machine.
 
 ## Quick start
 
@@ -47,12 +46,16 @@ the first time; choose **More info**, then **Run anyway**.
 **macOS and Linux:** download, extract and run in one step (use the file name for your system):
 
 ```
-curl -L https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-macos-arm64.tar.gz | tar xz ssobench
+curl -L https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-macos-arm64.tar.gz \
+  | tar xz ssobench
 ./ssobench
 ```
 
 If you downloaded the archive in a browser on macOS instead, clear the quarantine before running it:
-`xattr -d com.apple.quarantine ssobench`.
+
+```
+xattr -d com.apple.quarantine ssobench
+```
 
 Your browser opens at `http://localhost:8080`. Choose **New app**, fill in your identity provider's
 details and create it. The app's **Set up** tab then lists the values to register at the identity
@@ -123,7 +126,7 @@ provider.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/welcome-dark.png">
-  <img alt="The welcome screen a test user sees after signing in, with their profile and role" src="docs/images/welcome-light.png" width="640">
+  <img alt="The welcome screen a test user sees after signing in, with their profile and role" src="docs/images/welcome-light.png" width="520">
 </picture>
 
 Sign-ins started at the identity provider land on the welcome screen too. To see the test result
@@ -243,19 +246,19 @@ no key to check them against.
 
 ## Options
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `-port` | `8080` | Port to listen on |
-| `-listen` | `127.0.0.1:<port>` | Address to listen on |
-| `-base-url` | from the browser | Public URL to use in the registered URLs, for a reverse proxy |
-| `-tls` | off | Serve HTTPS with a generated self-signed certificate |
-| `-cert`, `-key` | | Serve HTTPS with your own certificate |
-| `-skew` | `2m` | Allowed clock skew when checking lifetimes |
-| `-no-open` | off | Do not open a browser on start |
-| `-allow-host` | | Another host name SSOBench answers to, such as a DNS alias; repeatable |
-| `-state` | user config folder | File that keeps apps and user directories across restarts; results and the log go in a history file beside it. `off` keeps nothing |
-| `-admin-password-file` | | File holding a console password, in addition to any set under **Settings** |
-| `-reset-console-sign-in` | off | Remove the console password and passkeys saved under **Settings** |
+| Flag | What it does |
+|---|---|
+| `-port` | Port to listen on. Default: `8080` |
+| `-listen` | Address to listen on. Default: `127.0.0.1:<port>` |
+| `-base-url` | Public URL to put in the registered URLs, for a reverse proxy. Without it, they follow the address in the browser |
+| `-tls` | Serve HTTPS with a generated self-signed certificate |
+| `-cert`, `-key` | Serve HTTPS with your own certificate |
+| `-skew` | Allowed clock skew when checking lifetimes. Default: `2m` |
+| `-no-open` | Do not open a browser on start |
+| `-allow-host` | Another host name SSOBench answers to, such as a DNS alias; repeatable |
+| `-state` | File that keeps apps and user directories across restarts; results and the log go in a history file beside it. `off` keeps nothing. Default: `ssobench/state.json` in the user config folder |
+| `-admin-password-file` | File holding a console password, in addition to any set under **Settings** |
+| `-reset-console-sign-in` | Remove the console password and passkeys saved under **Settings** |
 
 ## Running as a service
 
@@ -268,7 +271,8 @@ On Linux with systemd:
 Description=SSOBench
 
 [Service]
-ExecStart=/usr/local/bin/ssobench -no-open -listen 127.0.0.1:8080 -state /var/lib/ssobench/state.json
+ExecStart=/usr/local/bin/ssobench -no-open -listen 127.0.0.1:8080 \
+    -state /var/lib/ssobench/state.json
 StateDirectory=ssobench
 DynamicUser=yes
 Restart=on-failure
