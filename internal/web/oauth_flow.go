@@ -492,7 +492,7 @@ func (s *Server) oauthConformance(w http.ResponseWriter, r *http.Request) {
 	}
 	switch {
 	case slices.Contains(p.CodeChallengeMethods, "plain"):
-		add(check.Meh("Advertised PKCE methods", "plain is advertised", "OAuth 2.1 allows plain only when S256 is impossible. Advertise S256 only."))
+		add(check.Bad("Advertised PKCE methods", "plain is advertised", "OAuth 2.1 forbids plain: it does not protect the code if it is intercepted. Advertise and accept S256 only."))
 	case slices.Contains(p.CodeChallengeMethods, "S256"):
 		add(check.OK("Advertised PKCE methods", "S256"))
 	default:
@@ -542,7 +542,7 @@ func (s *Server) oauthConformance(w http.ResponseWriter, r *http.Request) {
 	probe("PKCE required", oidc.AuthOptions{NoPKCE: true, Resource: resource}, "refused an authorize request without PKCE", "the server issued a code without a code challenge",
 		"OAuth 2.1 requires PKCE. Turn on PKCE enforcement for this client at the IdP.")
 	probe("Plain PKCE refused", oidc.AuthOptions{Method: "plain", Resource: resource}, "refused code_challenge_method=plain", "the server accepted code_challenge_method=plain",
-		"Accept only S256.")
+		"OAuth 2.1 forbids plain. Accept only S256.")
 	probe("Implicit flow removed", oidc.AuthOptions{ResponseType: "token", Resource: resource}, "refused response_type=token", "the server returned a token for response_type=token",
 		"OAuth 2.1 removes the implicit flow. Turn it off for this client.")
 	probe("Hybrid flow removed", oidc.AuthOptions{ResponseType: "code id_token", Resource: resource}, "refused response_type=code id_token", "the server returned a token for response_type=code id_token",

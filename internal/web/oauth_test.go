@@ -34,6 +34,7 @@ type fakeAS struct {
 	laxPKCE        bool // no PKCE required, verifier unchecked
 	noRotation     bool // refresh tokens are not rotated
 	tokenEndpoint5 bool // the token endpoint answers 503 to everything
+	advertisePlain bool // the metadata lists the plain PKCE method
 }
 
 type asCode struct {
@@ -52,10 +53,14 @@ func newFakeAS(t *testing.T, clientID, secret string) *fakeAS {
 	t.Cleanup(as.Close)
 	iss := as.URL
 	mux.HandleFunc("/.well-known/oauth-authorization-server", func(w http.ResponseWriter, r *http.Request) {
+		methods := []string{"S256"}
+		if as.advertisePlain {
+			methods = append(methods, "plain")
+		}
 		json.NewEncoder(w).Encode(map[string]any{
 			"issuer": iss, "authorization_endpoint": iss + "/authorize", "token_endpoint": iss + "/token",
 			"jwks_uri": iss + "/jwks", "introspection_endpoint": iss + "/introspect",
-			"response_types_supported": []string{"code"}, "code_challenge_methods_supported": []string{"S256"},
+			"response_types_supported": []string{"code"}, "code_challenge_methods_supported": methods,
 			"grant_types_supported":                          []string{"authorization_code", "refresh_token", "client_credentials"},
 			"authorization_response_iss_parameter_supported": true,
 		})
@@ -325,11 +330,16 @@ func TestOAuthCatchesLaxServers(t *testing.T) {
 	if got := checkLine(page, "Refresh token rotation"); got != "info" {
 		t.Errorf("no rotation for a confidential client: %q, want info", got)
 	}
+	as.advertisePlain = true
 	loc := oauthStep(t, c, "POST", ts.URL+"/apps/"+id+"/conformance")
 	_, page = get(t, c, ts.URL+loc)
 	if checkLine(page, "Exact redirect URI match (trailing slash)") != "fail" {
 		t.Errorf("loose redirect matching not caught:\n%s", mainOf(page))
 	}
+	if got := checkLine(page, "Advertised PKCE methods"); got != "fail" {
+		t.Errorf("advertising plain PKCE: %q, want fail (OAuth 2.1 forbids it)", got)
+	}
+	as.advertisePlain = false
 
 	// A broken token endpoint is not mistaken for a refusal.
 	as.laxRedirect, as.laxCodeReuse = false, false
