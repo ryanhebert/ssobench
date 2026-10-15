@@ -275,10 +275,7 @@ func CheckAccessToken(j *JWT, e ExpectAT) []check.Result {
 				"The token was signed with a key the server does not publish, so APIs cannot verify it."))
 			break
 		}
-		pub, err := k.PublicKey()
-		if err == nil {
-			err = j.Verify(pub, nil)
-		}
+		err := j.VerifyJWK(k)
 		if err != nil {
 			rs = append(rs, check.Bad("Access token signature", fmt.Sprintf("%s with key %q: %v", alg, k.Kid, err), "The token was altered, or signed with another key."))
 		} else {

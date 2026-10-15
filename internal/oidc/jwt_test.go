@@ -184,3 +184,100 @@ func TestDiscoveryTrailingComma(t *testing.T) {
 		t.Fatalf("%+v", p)
 	}
 }
+
+// Verification refuses every way of pairing a token with the wrong kind of
+// key or no key at all, not just a bad signature.
+func TestVerifyRefusesMismatches(t *testing.T) {
+	rk, _ := rsa.GenerateKey(rand.Reader, 2048)
+	p256, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	p384, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	claims := map[string]any{"sub": "u"}
+	parse := func(tok string) *JWT {
+		j, err := ParseJWT(tok)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return j
+	}
+	es256 := sign(t, "ES256", "e", claims, p256)
+	parts := strings.Split(es256, ".")
+	sig, _ := base64.RawURLEncoding.DecodeString(parts[2])
+	rsaJWK := JWK{Kty: "RSA", Kid: "r", Alg: "RS256", N: b64(rk.N.Bytes()), E: b64(big.NewInt(int64(rk.E)).Bytes())}
+
+	for _, c := range []struct {
+		name string
+		err  func() error
+	}{
+		{"alg none", func() error {
+			return parse(enc(map[string]any{"alg": "none"})+"."+enc(claims)+".").Verify(&rk.PublicKey, []byte("s"))
+		}},
+		{"HMAC with no secret", func() error {
+			return parse(sign(t, "RS256", "r", claims, rk)).withAlg("HS256").Verify(&rk.PublicKey, nil)
+		}},
+		{"RSA alg, EC key", func() error { return parse(sign(t, "RS256", "r", claims, rk)).Verify(&p256.PublicKey, nil) }},
+		{"EC alg, RSA key", func() error { return parse(es256).Verify(&rk.PublicKey, nil) }},
+		{"ES256 on a P-384 key", func() error { return parse(sign(t, "ES256", "e", claims, p384)).Verify(&p384.PublicKey, nil) }},
+		{"ES256 signature one byte long", func() error {
+			return parse(parts[0]+"."+parts[1]+"."+base64.RawURLEncoding.EncodeToString(append(sig, 0))).Verify(&p256.PublicKey, nil)
+		}},
+		{"key published for RS256, token says PS256", func() error { return parse(sign(t, "PS256", "r", claims, rk)).VerifyJWK(rsaJWK) }},
+		{"unknown alg", func() error {
+			return parse(sign(t, "RS256", "r", claims, rk)).withAlg("XX256").Verify(&rk.PublicKey, nil)
+		}},
+	} {
+		if err := c.err(); err == nil {
+			t.Errorf("%s: verified", c.name)
+		}
+	}
+	// The control: the same key, declared for the right alg, verifies.
+	if err := parse(sign(t, "RS256", "r", claims, rk)).VerifyJWK(rsaJWK); err != nil {
+		t.Errorf("control: %v", err)
+	}
+}
+
+// withAlg relabels a parsed token's alg, as an attacker would.
+func (j *JWT) withAlg(alg string) *JWT {
+	j.Header["alg"] = alg
+	return j
+}
+
+// Arbitrary input never panics, and never verifies against a key that did
+// not sign it.
+func FuzzJWT(f *testing.F) {
+	rk, _ := rsa.GenerateKey(rand.Reader, 2048)
+	ek, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	other, _ := rsa.GenerateKey(rand.Reader, 2048)
+	for _, alg := range []string{"RS256", "PS256"} {
+		f.Add(fakeSign(alg, rk))
+	}
+	f.Add(enc(map[string]any{"alg": "none"}) + "." + enc(map[string]any{"sub": "u"}) + ".")
+	f.Add("e30.e30.AAAA")
+	f.Fuzz(func(t *testing.T, tok string) {
+		j, err := ParseJWT(tok)
+		if err != nil {
+			return
+		}
+		j.Audiences()
+		j.Time("exp")
+		for _, key := range []crypto.PublicKey{&other.PublicKey, &ek.PublicKey} {
+			if j.Verify(key, nil) == nil {
+				t.Fatalf("verified with a key that never signed it: %q", tok)
+			}
+		}
+		j.Verify(nil, []byte("secret"))
+	})
+}
+
+func fakeSign(alg string, k *rsa.PrivateKey) string {
+	in := enc(map[string]any{"alg": alg}) + "." + enc(map[string]any{"sub": "u"})
+	h, _ := HashFor(alg)
+	hw := h.New()
+	hw.Write([]byte(in))
+	var sig []byte
+	if strings.HasPrefix(alg, "PS") {
+		sig, _ = rsa.SignPSS(rand.Reader, k, h, hw.Sum(nil), &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash})
+	} else {
+		sig, _ = rsa.SignPKCS1v15(rand.Reader, k, h, hw.Sum(nil))
+	}
+	return in + "." + base64.RawURLEncoding.EncodeToString(sig)
+}

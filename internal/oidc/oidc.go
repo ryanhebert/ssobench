@@ -291,10 +291,7 @@ func CheckIDToken(j *JWT, e Expect, accessToken string) []check.Result {
 				"The signing key rotated, or the token was issued by a different issuer or tenant than the one you configured."))
 			break
 		}
-		pub, err := k.PublicKey()
-		if err == nil {
-			err = j.Verify(pub, nil)
-		}
+		err := j.VerifyJWK(k)
 		if err != nil {
 			rs = append(rs, check.Bad("Signature", fmt.Sprintf("%s with key %q: %v", alg, k.Kid, err),
 				"The token was altered, or signed by a different key with the same kid."))

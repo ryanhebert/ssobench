@@ -269,10 +269,7 @@ func (s *Server) backchannelLogout(w http.ResponseWriter, r *http.Request) {
 		fail("the logout_token is not signed with one of the provider's published keys")
 		return
 	}
-	pub, err := k.PublicKey()
-	if err == nil {
-		err = j.Verify(pub, nil)
-	}
+	err = j.VerifyJWK(k)
 	if err != nil {
 		fail("signature: " + err.Error())
 		return

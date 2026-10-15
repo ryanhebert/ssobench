@@ -286,15 +286,37 @@ func (j *JWT) Verify(key crypto.PublicKey, secret []byte) error {
 		if !ok {
 			return fmt.Errorf("alg %s but key is %T", alg, key)
 		}
-		n := len(j.sig) / 2
-		r, s := new(big.Int).SetBytes(j.sig[:n]), new(big.Int).SetBytes(j.sig[n:])
-		if len(j.sig)%2 != 0 || !ecdsa.Verify(pub, digest, r, s) {
+		// Each ES algorithm names one curve (RFC 7518, 3.4), and the
+		// signature is exactly R || S at that curve's size.
+		curve := map[string]elliptic.Curve{"ES256": elliptic.P256(), "ES384": elliptic.P384(), "ES512": elliptic.P521()}[alg]
+		if curve == nil || pub.Curve != curve {
+			return fmt.Errorf("alg %s but the key is on curve %s", alg, pub.Curve.Params().Name)
+		}
+		size := (curve.Params().BitSize + 7) / 8
+		if len(j.sig) != 2*size {
+			return fmt.Errorf("the %s signature is %d bytes, not %d", alg, len(j.sig), 2*size)
+		}
+		r, s := new(big.Int).SetBytes(j.sig[:size]), new(big.Int).SetBytes(j.sig[size:])
+		if !ecdsa.Verify(pub, digest, r, s) {
 			err = errors.New("signature does not match")
 		}
 	default:
 		return fmt.Errorf("unsupported alg %q", alg)
 	}
 	return err
+}
+
+// VerifyJWK checks the signature with a published key. A key that declares
+// its algorithm is used for that algorithm only (RFC 7517, 4.4).
+func (j *JWT) VerifyJWK(k JWK) error {
+	if k.Alg != "" && k.Alg != j.Alg() {
+		return fmt.Errorf("key %q is for %s, but the token says %s", k.Kid, k.Alg, j.Alg())
+	}
+	pub, err := k.PublicKey()
+	if err != nil {
+		return err
+	}
+	return j.Verify(pub, nil)
 }
 
 // HalfHash computes at_hash / c_hash: the left half of the hash of v.
