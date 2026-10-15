@@ -48,18 +48,30 @@ provisions over SCIM, and keeps sessions and roles.
    | macOS | [Apple silicon](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-macos-arm64.tar.gz), [Intel](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-macos-amd64.tar.gz) |
    | Linux | [x64](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-linux-amd64.tar.gz), [Arm64](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-linux-arm64.tar.gz) |
 
-2. Run it. On Windows, open the `.exe`. The binaries are not code-signed yet, so SmartScreen may ask
-   you to choose **More info**, then **Run anyway**. On macOS or Linux, extract and start it:
+2. Run it.
+
+   **Windows:** open the `.exe`. The binaries are not code-signed yet, so SmartScreen may ask you to
+   choose **More info**, then **Run anyway**.
+
+   **macOS:** in Terminal, in the folder you downloaded to. The second line clears the quarantine
+   macOS puts on downloaded files, which would otherwise block an unsigned program.
 
    ```
-   tar xzf ssobench-*.tar.gz ssobench && ./ssobench
+   tar xzf ssobench-macos-*.tar.gz ssobench
+   xattr -c ssobench
+   ./ssobench
    ```
 
-   On macOS, a file downloaded in a browser is quarantined. Clear that first:
+   If Safari already unpacked the download, skip the first line and run the other two inside the
+   unpacked folder.
+
+   **Linux:**
 
    ```
-   xattr -d com.apple.quarantine ssobench
+   tar xzf ssobench-linux-*.tar.gz ssobench && ./ssobench
    ```
+
+   If port 8080 is already in use, add `-port 8081` to the command.
 
 3. Your browser opens SSOBench. Choose **New app** and enter your identity provider's metadata URL
    (for SAML) or its issuer and your client ID (for OpenID Connect). Register the values from the
