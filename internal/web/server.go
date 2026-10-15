@@ -884,7 +884,7 @@ func (s *Server) renderApp(w http.ResponseWriter, r *http.Request, status int, i
 func (s *Server) oauthTests(appID string) []TestView {
 	tests := []TestView{
 		{Name: "Machine token", About: "Gets a token with the client credentials grant.", Path: "/machine", NeedsSecret: true},
-		{Name: "OAuth 2.1 conformance", About: "Probes OAuth 2.1 rules without signing in.", Path: "/conformance"},
+		{Name: "OAuth 2.1 conformance", About: "Probes OAuth 2.1 rules without signing in. The requests are deliberately invalid, including a password grant for a user that does not exist, so expect failed sign-ins in the identity provider's log.", Path: "/conformance"},
 		{Name: "Sign-in without PKCE", About: "Asks for a code with no code challenge. The server should refuse.", Path: "/check/" + ModeNoPKCE, NeedsSecret: true},
 		{Name: "Wrong PKCE verifier", About: "Redeems a code with a verifier that doesn't match. The server must refuse.", Path: "/check/" + ModeWrongVerifier, NeedsSecret: true},
 	}

@@ -60,10 +60,16 @@ For a client that gets access tokens for an API rather than signing people in:
      introspection endpoint about the token, tests refresh token rotation, and checks that the code
      cannot be redeemed twice.
    - **Machine token** uses the client credentials grant.
-   - **OAuth 2.1 conformance** probes the server without signing in: PKCE must be required, and
-     `plain` PKCE, the implicit and hybrid flows and the password grant must be refused. Redirect
-     URIs must match exactly.
+   - **OAuth 2.1 conformance** probes the server without signing in: PKCE must be required, and `plain`
+     PKCE, the implicit and hybrid flows and the password grant must be refused. Redirect URIs must
+     match exactly. OAuth 2.1 is still an IETF draft, and this is not a certification suite. A server
+     that shows its sign-in page before validating the request can't be judged this way; those probes
+     are listed as not tested, and the guided PKCE checks below cover them with a real sign-in.
    - **Sign-in without PKCE** and **Wrong PKCE verifier** check that the server refuses both.
+
+These probes and **Test sign-in**'s code reuse check send deliberately invalid requests to your
+tenant. Expect failed sign-in events at the identity provider, and tokens from the test to be
+revoked.
 
 ## Behaving like an application
 
@@ -265,7 +271,8 @@ in place of a production one.
   client secret, in which case the secret is saved in the state file too. A client secret is never
   shown on a page or written to the log.
 - SCIM tokens are shown on the app page to anyone who can open the console.
-- The log shortens every token.
+- The log shortens every token, but it still contains user identifiers such as names and email
+  addresses. Review a downloaded log before sharing it.
 - Each SAML app gets its own signing key at first use, kept in the state file. SSOBench signs logout
   messages with it, and sign-in requests when **Sign sign-in requests** is on. Apps that expect
   encrypted assertions also get an encryption key. Both certificates are in the app's metadata and

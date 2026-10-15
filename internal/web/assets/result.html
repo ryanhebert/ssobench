@@ -15,7 +15,7 @@
 <div class="actions result-actions">
   {{if $.App}}<form method="post" action="/apps/{{$.App.ID}}{{.RerunPath}}"><button class="btn btn-primary" type="submit">{{.RerunLabel}}</button></form>
   {{if and $.App.Logout (ne .Status "fail") .IsSignIn (not .Mode)}}<form method="post" action="/apps/{{$.App.ID}}/logout/{{.ID}}"{{if $.App.SLOToIdP}} target="_blank" data-new-tab="Single logout continues in a new tab. Its steps appear in the Log."{{end}}><button class="btn btn-secondary" type="submit">Test sign-out{{if $.App.SLOToIdP}} {{template "i" "external"}}<span class="sr">(opens in a new tab)</span>{{end}}</button></form>{{end}}{{end}}
-  <a class="btn btn-secondary" href="/result/{{.ID}}/log.txt" download>{{template "i" "download"}}Download log</a>
+  <a class="btn btn-secondary" href="/result/{{.ID}}/log.txt" download title="Contains user identifiers such as names and email addresses. Review it before sharing.">{{template "i" "download"}}Download log</a>
 </div>
 
 {{with .Problems}}
