@@ -1,0 +1,69 @@
+{{define "title"}}{{.App.Name}}{{end}}
+{{template "ptop" .}}
+{{with .Result}}{{$r := .}}
+{{if eq .Status "fail"}}
+<div class="card">
+  <span class="app-mark app-mark-fail" aria-hidden="true">{{template "i" "x"}}</span>
+  <h1>We couldn't sign you in</h1>
+  {{if eq .AccountProblem "notfound"}}
+  <p class="card-sub">You signed in, but you don't have an account in {{$.App.Name}}. Ask your administrator to give you access, and include this reference.</p>
+  {{else if eq .AccountProblem "inactive"}}
+  <p class="card-sub">You signed in, but your account in {{$.App.Name}} is deactivated. Ask your administrator to reactivate it, and include this reference.</p>
+  {{else if eq .AccessProblem "denied"}}
+  <p class="card-sub">You signed in, but you don't have access to {{$.App.Name}}. Ask your administrator for access, and include this reference.</p>
+  {{else if eq .AccountProblem "missing"}}
+  <p class="card-sub">You signed in, but the sign-in service didn't send what {{$.App.Name}} needs to find your account. Give your administrator this reference.</p>
+  {{else if and .Refused (or (eq .Refused "access_denied") (hasPrefix .Refused "access_denied"))}}
+  <p class="card-sub">You don't have access to {{$.App.Name}}. Ask your administrator to give you access, and include this reference.</p>
+  {{else if .Refused}}
+  <p class="card-sub">The sign-in service declined the request. Try again, or give your administrator this reference.</p>
+  {{else}}
+  <p class="card-sub">The sign-in didn't pass the checks this application requires. Try again, or give your administrator this reference.</p>
+  {{end}}
+  <div class="ref"><span>Reference</span><code>{{.Ref}}</code><button type="button" class="copy copy-inline" data-copy="{{.Ref}}" aria-label="Copy the reference" title="Copy">{{template "i" "copy"}}</button></div>
+  <p class="ref-time">{{utc .Time}}</p>
+  <form method="post" action="/a/{{$.App.ID}}/login"><button class="btn {{if or .Refused .AccountProblem .AccessProblem}}btn-secondary{{else}}btn-primary{{end}} btn-block" type="submit">Try again</button></form>
+  <p class="card-links"><a href="/result/{{.ID}}" target="_blank" rel="noopener">Details for administrators {{template "i" "external"}}<span class="sr">(opens in a new tab)</span></a></p>
+</div>
+{{else if eq .Kind "OAUTH"}}
+<div class="card card-wide">
+  <span class="app-mark app-mark-pass" aria-hidden="true">{{template "i" "check"}}</span>
+  <h1>Access granted</h1>
+  <p class="card-sub">{{$.App.Name}} received an access token{{with .Subject}} for {{.}}{{end}}.</p>
+  <dl class="profile">
+    <div><dt>Scopes</dt><dd>{{if .GrantedScopes}}<span class="tags">{{range .GrantedScopes}}<span class="tag">{{.}}</span>{{end}}</span>{{else}}<span class="muted">None listed in the token</span>{{end}}</dd></div>
+    {{if not .TokenExpiry.IsZero}}<div><dt>Expires</dt><dd>{{until .TokenExpiry}} <span class="muted">({{utc .TokenExpiry}})</span></dd></div>{{end}}
+    {{with .Account}}<div><dt>Account</dt><dd>{{.}}</dd></div>{{end}}
+  </dl>
+  <p class="session">Authorized with OAuth 2.1 <time datetime="{{$r.Time.UTC.Format "2006-01-02T15:04:05Z"}}">{{ago $r.Time}}</time>{{if eq $r.Status "warn"}}, with warnings{{end}}</p>
+  <div class="card-actions">
+    <form method="post" action="/a/{{$.App.ID}}/logout/{{$r.ID}}"><button class="btn btn-secondary btn-block" type="submit">Sign out</button></form>
+    <a class="card-link" href="/result/{{$r.ID}}" target="_blank" rel="noopener">Details for administrators {{template "i" "external"}}<span class="sr">(opens in a new tab)</span></a>
+  </div>
+</div>
+{{else}}{{with .Profile}}
+<div class="card card-wide">
+  <span class="avatar" aria-hidden="true">{{.Initials}}</span>
+  <h1>Welcome, {{.FirstName}}</h1>
+  <p class="card-sub">You're signed in to {{$.App.Name}}.</p>
+  {{if .Fields}}
+  <dl class="profile">
+    {{range .Fields}}
+    <div>
+      <dt>{{.Label}}</dt>
+      <dd>{{if .Tags}}<span class="tags">{{range .Values}}<span class="tag">{{.}}</span>{{end}}</span>{{else}}{{range $i, $v := .Values}}{{if $i}}<br>{{end}}{{$v}}{{end}}{{end}}</dd>
+    </div>
+    {{end}}
+  </dl>
+  {{else}}
+  <p class="muted">The sign-in service didn't share any details about you.</p>
+  {{end}}
+  <p class="session">{{if and $r.Account (ne $r.Account .Email)}}Your account: <strong>{{$r.Account}}</strong>{{with $r.Role}}, role <strong>{{.}}</strong>{{end}}<br>{{else}}{{with $r.Role}}Your role: <strong>{{.}}</strong><br>{{end}}{{end}}Signed in <time datetime="{{$r.Time.UTC.Format "2006-01-02T15:04:05Z"}}">{{agoLong $r.Time}}</time>{{if $r.DeepLink}}<br>You arrived through the app's deep link.{{end}}</p>
+  <div class="card-actions">
+    <form method="post" action="/a/{{$.App.ID}}/logout/{{$r.ID}}"{{if $.App.SLOToIdP}} target="_blank" data-new-tab="Signing out at your sign-in service in a new tab." data-then="/a/{{$.App.ID}}"{{end}}><button class="btn btn-secondary btn-block" type="submit">Sign out</button></form>
+    <a class="card-link" href="/result/{{$r.ID}}" target="_blank" rel="noopener">Details for administrators {{template "i" "external"}}<span class="sr">(opens in a new tab)</span></a>
+  </div>
+</div>
+{{end}}{{end}}
+{{end}}
+{{template "pbottom" .}}

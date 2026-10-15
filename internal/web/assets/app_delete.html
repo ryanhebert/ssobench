@@ -1,0 +1,13 @@
+{{define "title"}}Delete {{.App.Name}} - SSOBench{{end}}
+{{template "top" .}}
+{{with .App}}
+<a class="back" href="/apps/{{.ID}}">{{template "i" "back"}}{{.Name}}</a>
+<h1>Delete {{.Name}}?</h1>
+<p class="lede">{{if .App.Directory}}Its {{len .App.Users}} {{plural (len .App.Users) "account" "accounts"}} and the SCIM token are removed. {{end}}{{if .App.IsOAuth}}The redirect URI registered at your identity provider stops working.{{else}}Its sign-in page and the URLs registered at your identity provider stop working.{{end}} Past tests stay in Activity.</p>
+<form method="post" action="/apps/{{.ID}}/delete" class="actions confirm-actions">
+  <input type="hidden" name="confirm" value="1">
+  <button class="btn btn-danger-solid" type="submit">Delete app</button>
+  <a class="btn btn-secondary" href="/apps/{{.ID}}">Cancel</a>
+</form>
+{{end}}
+{{template "bottom" .}}

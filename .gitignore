@@ -1,0 +1,27 @@
+# Secret-shaped — never commit
+.env
+*.env.bak
+*.pem
+id_*
+*.key
+secrets.dec.env
+# Cruft
+__pycache__/
+.DS_Store
+
+# Private notes, never published
+.private/
+
+# Build output
+/dist/
+/ssobench
+/ssobench.exe
+
+# Local browser-automation output
+.playwright-cli/
+.claude/worktrees/
+
+# Workstation files, not published
+.envrc
+project.json
+CLAUDE.local.md

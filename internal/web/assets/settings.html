@@ -1,0 +1,81 @@
+{{define "title"}}Settings - SSOBench{{end}}
+{{template "top" .}}
+{{with .Access}}
+<div class="page-head">
+  <div>
+    <h1>Settings</h1>
+    <p class="lede">{{if .Protected}}The console asks for sign-in.{{else}}Anyone who can open SSOBench can use the console. Add a password or a passkey to require sign-in.{{end}} Sign-in pages, identity provider endpoints and SCIM always stay open, because test users and your identity provider reach them.</p>
+  </div>
+</div>
+{{if not .Persisting}}<p class="note note-warn">SSOBench was started without a state file, so these settings last only until it stops.</p>{{end}}
+
+<section class="group">
+  <h2>Password</h2>
+  <div class="group-body">
+    {{if .Password}}<p>A password is set. Change it below, or remove it.</p>{{end}}
+    <form method="post" action="/settings/password" class="access-form">
+      <input type="text" name="username" value="admin" autocomplete="username" hidden>
+      <div class="field-pair">
+        <div class="field">
+          <label for="password">{{if .Password}}New password{{else}}Choose a password{{end}}</label>
+          <input id="password" name="password" type="password" autocomplete="new-password" minlength="8" required{{with fieldErr $.Errs "password"}} aria-invalid="true"{{end}}>
+          {{template "field-error" (fieldErr $.Errs "password")}}
+        </div>
+        <div class="field">
+          <label for="confirm">Type it again</label>
+          <input id="confirm" name="confirm" type="password" autocomplete="new-password" required{{with fieldErr $.Errs "confirm"}} aria-invalid="true"{{end}}>
+          {{template "field-error" (fieldErr $.Errs "confirm")}}
+        </div>
+      </div>
+      <p class="help">At least 8 characters.{{if .Password}} Changing it signs out every other browser.{{end}}</p>
+      <div class="actions">
+        <button class="btn btn-primary" type="submit">{{if .Password}}Change password{{else}}Set password{{end}}</button>
+        {{if .Password}}<button class="btn btn-danger" type="submit" formaction="/settings/password/remove" formnovalidate>Remove password</button>{{end}}
+      </div>
+    </form>
+    {{if .Startup}}<p class="help">A password given at start (<code>-admin-password-file</code> or <code>SSOBENCH_ADMIN_PASSWORD</code>) also signs in. It can't be changed here.</p>{{end}}
+  </div>
+</section>
+
+<section class="group">
+  <h2>Passkeys</h2>
+  <div class="group-body">
+    {{if .Passkeys}}
+    <ul class="list passkeys">
+      {{range .Passkeys}}
+      <li class="row">
+        <span class="row-main">
+          <span class="row-title">{{.Name}}</span>
+          <span class="row-sub">{{if not .Here}}At {{.RPID}}, {{end}}added {{ago .Created}}{{if not .LastUsed.IsZero}}, last used {{ago .LastUsed}}{{end}}</span>
+        </span>
+        <form method="post" action="/settings/passkeys/{{.ID}}/delete"><button class="btn btn-danger btn-sm" type="submit" aria-label="Remove {{.Name}}">Remove</button></form>
+      </li>
+      {{end}}
+    </ul>
+    {{end}}
+    {{if .PasskeyWhy}}
+    <p class="help">{{.PasskeyWhy}}</p>
+    {{else}}
+    <form class="access-form" data-passkey-add>
+      <div class="field passkey-name">
+        <label for="passkey_name">Name for the new passkey</label>
+        <input id="passkey_name" name="name" maxlength="60" placeholder="This laptop" autocomplete="off">
+      </div>
+      <div class="actions"><button class="btn {{if .Passkeys}}btn-secondary{{else}}btn-primary{{end}}" type="submit">Add a passkey</button></div>
+      <div class="field-error" role="alert" data-passkey-error hidden>{{template "i" "alert"}}<div><p></p></div></div>
+    </form>
+    <p class="help">Uses this device, a phone or a security key, unlocked with a PIN or biometrics. A passkey works only at the host name it was added at: {{.Host}}.</p>
+    {{end}}
+  </div>
+</section>
+
+{{if or .Password .Passkeys}}
+<section class="group">
+  <h2>Locked out?</h2>
+  <div class="group-body">
+    <p class="muted">Start SSOBench with <code>-reset-console-sign-in</code>. It removes the saved password and passkeys, so the console opens without sign-in again.</p>
+  </div>
+</section>
+{{end}}
+{{end}}
+{{template "bottom" .}}

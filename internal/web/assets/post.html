@@ -1,0 +1,12 @@
+{{define "title"}}Redirecting{{end}}
+{{if .Plain}}{{template "ptop" .}}{{else}}{{template "top" .}}{{end}}
+{{with .PostForm}}
+<form method="post" action="{{.Action}}" data-autosubmit class="{{if $.Plain}}card{{else}}empty{{end}}">
+  <input type="hidden" name="{{.Field}}" value="{{.Value}}">
+  {{if .RelayState}}<input type="hidden" name="RelayState" value="{{.RelayState}}">{{end}}
+  {{if $.Plain}}{{with $.App}}<span class="app-mark" aria-hidden="true">{{.Name | initialsOf}}</span>{{end}}<h1>Taking you to sign in…</h1>{{else}}<p class="empty-title">Sending you to your identity provider</p>{{end}}
+  <p class="{{if $.Plain}}card-sub{{else}}muted{{end}}">If nothing happens, continue.</p>
+  <button class="btn btn-primary{{if $.Plain}} btn-block{{end}}" type="submit">Continue</button>
+</form>
+{{end}}
+{{if .Plain}}{{template "pbottom" .}}{{else}}{{template "bottom" .}}{{end}}

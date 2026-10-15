@@ -1,0 +1,9 @@
+{{define "title"}}Request blocked - SSOBench{{end}}
+{{template "ptop" .}}
+<div class="card">
+  <span class="app-mark app-mark-fail" aria-hidden="true">{{template "i" "x"}}</span>
+  <h1>Request blocked</h1>
+  <p class="card-sub">{{.Error}}</p>
+  <a class="btn btn-secondary btn-block" href="/">Go to SSOBench</a>
+</div>
+{{template "pbottom" .}}

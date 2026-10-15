@@ -1,0 +1,11 @@
+{{define "title"}}Signed out of {{.App.Name}}{{end}}
+{{template "ptop" .}}
+{{with .SignedOut}}
+<div class="card">
+  <span class="app-mark {{if .Confirmed}}app-mark-pass{{else}}app-mark-muted{{end}}" aria-hidden="true">{{template "i" "check"}}</span>
+  <h1>You're signed out</h1>
+  <p class="card-sub">{{if .Confirmed}}You're signed out of {{$.App.Name}} and of your single sign-on session.{{else}}You're signed out of {{$.App.Name}}. {{with .Reason}}{{.}} {{end}}You may still be signed in to your organization's sign-in service.{{end}}</p>
+  <a class="btn btn-primary btn-block" href="/a/{{$.App.ID}}">Sign in again</a>
+</div>
+{{end}}
+{{template "pbottom" .}}

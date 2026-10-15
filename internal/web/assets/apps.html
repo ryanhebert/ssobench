@@ -1,0 +1,36 @@
+{{define "title"}}Apps - SSOBench{{end}}
+{{template "top" .}}
+<div class="page-head">
+  <div>
+    <h1>Apps</h1>
+    <p class="lede">One app for each application at your identity provider. Test sign-in to see exactly what it sends.</p>
+  </div>
+  {{if .Apps}}<a class="btn btn-primary" href="/apps/new">{{template "i" "plus"}}New app</a>{{end}}
+</div>
+
+{{if .Apps}}
+<ul class="list">
+{{range .Apps}}
+  <li class="row">
+    {{if .Last}}{{template "mark" .Last.Status}}{{else}}{{template "mark" "none"}}{{end}}
+    <a class="row-main" href="/apps/{{.ID}}">
+      <span class="row-title">{{.Name}}</span>
+      <span class="row-sub">{{.ProtocolName}}{{with .IdPLabel}} <span class="sep">at</span> {{.}}{{else}} <span class="sep">not connected yet</span>{{end}}</span>
+    </a>
+    {{if .Connected}}
+    <span class="row-aside">{{with .Last}}<a href="/result/{{.ID}}" class="row-last" title="{{.Summary}}">{{.Summary}}</a><span>{{ago .Time}}</span>{{else}}<span>Not tested yet</span>{{end}}</span>
+    <form method="post" action="/apps/{{.ID}}/signin" class="row-action"><button class="btn btn-secondary btn-sm" type="submit">Test sign-in</button></form>
+    {{else}}
+    <a class="btn btn-secondary btn-sm row-action" href="/apps/{{.ID}}">Finish setup</a>
+    {{end}}
+  </li>
+{{end}}
+</ul>
+{{else}}
+<div class="empty">
+  <p class="empty-title">Add your first app</p>
+  <p class="muted">Add one app for each application at your identity provider: SAML, OpenID Connect or OAuth 2.1.</p>
+  <div class="actions"><a class="btn btn-primary" href="/apps/new">{{template "i" "plus"}}New app</a></div>
+</div>
+{{end}}
+{{template "bottom" .}}

@@ -1,0 +1,78 @@
+{{define "title"}}{{.App.Name}} - SSOBench{{end}}
+{{template "top" .}}
+{{with .App}}{{$a := .}}
+{{template "app-head" $}}
+
+{{if not .Connected}}
+<ol class="steps">
+  <li class="step">
+    <h2><span class="step-n" aria-hidden="true">1</span>Register SSOBench at your identity provider</h2>
+    <div class="step-body">{{template "setup-required" $}}</div>
+  </li>
+  <li class="step">
+    <h2><span class="step-n" aria-hidden="true">2</span>Connect your identity provider</h2>
+    <div class="step-body">
+      <p class="muted">{{if .IsSAML}}Once the app exists at your identity provider, enter its metadata URL or paste its metadata.{{else}}Once the app exists at your identity provider, enter its issuer URL and the client ID it gave you.{{end}}</p>
+      <form method="post" action="/apps/{{.ID}}" class="form">
+        {{template "connect-fields" $}}
+        <div class="actions"><button class="btn btn-primary" type="submit">Connect</button></div>
+      </form>
+    </div>
+  </li>
+  <li class="step step-later">
+    <h2><span class="step-n" aria-hidden="true">3</span>Test sign-in</h2>
+    <div class="step-body"><p class="muted">Available once the identity provider is connected.</p></div>
+  </li>
+</ol>
+{{else}}
+
+{{if and (not .IsSAML) (not .HasSecret) (not .PublicClient)}}
+<form method="post" action="/apps/{{.ID}}/secret" class="secret-prompt">
+  <label for="secret_now">Enter the client secret to test</label>
+  <p class="help">{{if $.Persisting}}SSOBench keeps it in memory only unless you keep it across restarts.{{else}}SSOBench keeps it in memory only, so a restart clears it.{{end}}</p>
+  <div class="secret-row">
+    <input id="secret_now" name="client_secret" type="password" autocomplete="off" required>
+    <button class="btn btn-primary" type="submit">Save</button>
+  </div>
+  {{if $.Persisting}}<label class="checkbox"><input type="checkbox" name="keep_secret" value="1"><span>Keep it across restarts</span></label>{{end}}
+  <button class="btn-link secret-public" type="submit" name="public" value="1" formnovalidate>It's a public client, with no secret</button>
+</form>
+{{end}}
+{{$needSecret := and (not .IsSAML) (not .HasSecret) (not .PublicClient)}}
+
+<div class="hero-action">
+  <div class="actions">
+    <form method="post" action="/apps/{{.ID}}/signin"><button class="btn {{if $needSecret}}btn-secondary{{else}}btn-primary{{end}} btn-lg" type="submit"{{if $needSecret}} disabled{{end}}>Test sign-in</button></form>
+    <a class="quiet-link" href="/a/{{.ID}}" target="_blank" rel="noopener">Open sign-in page {{template "i" "external"}}<span class="sr">(opens in a new tab)</span></a>
+  </div>
+  <p class="help">{{if $needSecret}}Enter the client secret, or mark this as a public client, first.{{else if .IsOAuth}}Gets an access token for a person, then checks it, its refresh token and that the code works only once.{{else}}Test sign-in shows every check. Open the sign-in page to see what a person signing in sees.{{end}}</p>
+</div>
+
+{{if .IsOAuth}}
+<section class="section">
+  <h2>Other tests</h2>
+  <ul class="tests">
+    {{range $.Tests}}
+    <li>
+      <div class="test-main"><p class="test-name">{{.Name}}</p><p class="muted">{{.About}}</p></div>
+      <span class="test-last">{{with .Last}}{{template "mark" .Status}}<a href="/result/{{.ID}}" title="{{.Headline}}">{{.Headline}}</a><span class="test-when">{{ago .Time}}</span>{{end}}</span>
+      <form method="post" action="/apps/{{$a.ID}}{{.Path}}"><button class="btn btn-secondary btn-sm" type="submit"{{if and $needSecret .NeedsSecret}} disabled{{end}}>Run<span class="sr"> {{.Name}}</span></button></form>
+    </li>
+    {{end}}
+  </ul>
+</section>
+{{end}}
+
+<section class="section">
+  <div class="section-head"><h2>Recent activity</h2>{{if gt .Count 5}}<a href="/history?app={{.ID}}">All activity</a>{{end}}</div>
+  {{if $.Results}}
+  <ul class="list in-app">{{range $.Results}}{{template "result-row" .}}{{end}}</ul>
+  {{else}}
+  <p class="muted">Nothing tested yet. {{if .IsOAuth}}Run Test sign-in, or one of the other tests.{{else}}Run Test sign-in, or sign in from the identity provider.{{end}}</p>
+  {{end}}
+</section>
+
+<section class="section">{{template "idp-details" $}}</section>
+{{end}}
+{{end}}
+{{template "bottom" .}}

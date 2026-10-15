@@ -1,0 +1,165 @@
+{{define "title"}}Settings - {{.App.Name}} - SSOBench{{end}}
+{{template "top" .}}
+{{with .App}}{{$a := .}}
+{{template "app-head" $}}
+
+<form method="post" action="/apps/{{.ID}}" class="settings">
+  <section class="group">
+    <h2>Connection</h2>
+    <div class="group-body">
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" name="name" class="text" value="{{$.Form.Name}}" autocomplete="off">
+      </div>
+      {{template "connect-fields" $}}
+    </div>
+  </section>
+
+  <section class="group">
+    <h2>Sign-in</h2>
+    <div class="group-body">
+      {{if .IsSAML}}
+      <div class="field">
+        <label for="nameid_format">NameID format to ask for</label>
+        <select id="nameid_format" name="nameid_format">{{range nameIDFormats}}<option value="{{.URI}}"{{if eq .URI $a.NameIDFormat}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+        <p class="help">Sent in the sign-in request and the metadata. The result says which format came back.</p>
+      </div>
+      <div class="field-pair field-pair-wide">
+        <div class="field">
+          <label for="authn_context">Authentication context to ask for <span class="optional">optional</span></label>
+          <input id="authn_context" name="authn_context" value="{{join .AuthnContext " "}}" spellcheck="false" autocomplete="off" placeholder="urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport">
+        </div>
+        <div class="field">
+          <label for="authn_comparison">Compared as</label>
+          <select id="authn_comparison" name="authn_comparison">{{range authnComparisons}}<option value="{{.}}"{{if or (eq . $a.AuthnComparison) (and (eq . "exact") (eq $a.AuthnComparison ""))}} selected{{end}}>{{capitalize .}}</option>{{end}}</select>
+        </div>
+      </div>
+      <p class="help">Class references, separated by spaces (RequestedAuthnContext). Leave empty to not ask for one.</p>
+      <label class="checkbox"><input type="checkbox" name="force_authn" value="1"{{if $.Form.ForceAuthn}} checked{{end}}><span>Ask the identity provider to authenticate again every time (ForceAuthn)</span></label>
+      <label class="checkbox"><input type="checkbox" name="is_passive" value="1"{{if .IsPassive}} checked{{end}}><span>Ask for a sign-in without any prompt (IsPassive)</span></label>
+      <label class="checkbox"><input type="checkbox" name="sign_authn" value="1"{{if .SignAuthn}} checked{{end}}><span>Sign sign-in requests</span></label>
+      <p class="help checkbox-note">Use it when the identity provider requires signed requests, or to check that it verifies them. Logout messages are always signed. The certificate is under <a href="/apps/{{.ID}}/setup#signing">Set up</a>.</p>
+      <label class="checkbox"><input type="checkbox" name="encrypt" value="1"{{if .EncryptAssertions}} checked{{end}}><span>Expect encrypted assertions</span></label>
+      <p class="help checkbox-note">Publishes an encryption certificate in the metadata and under <a href="/apps/{{.ID}}/setup#encryption">Set up</a>. An unencrypted assertion then fails the test, and the result names the algorithms used.</p>
+      {{else}}
+      <div class="field">
+        <label for="scopes">Scopes</label>
+        <input id="scopes" name="scopes" value="{{$.Form.Scopes}}" spellcheck="false">
+        {{if .IsOAuth}}<p class="help">Add <code>offline_access</code> to test refresh tokens.</p>{{end}}
+      </div>
+      <div class="field">
+        <label for="extra">Extra authorize parameters <span class="optional">optional</span></label>
+        <input id="extra" name="extra" value="{{$.Form.ExtraParams}}" spellcheck="false">
+        <p class="help">For example prompt=login or max_age=300</p>
+      </div>
+      <div class="field-pair">
+        <div class="field">
+          <label for="acr_values">acr_values <span class="optional">optional</span></label>
+          <input id="acr_values" name="acr_values" value="{{.AcrValues}}" spellcheck="false" autocomplete="off">
+          <p class="help">Authentication levels to ask for, separated by spaces. The ID token's acr is checked against them.</p>
+        </div>
+        <div class="field">
+          <label for="login_hint">login_hint <span class="optional">optional</span></label>
+          <input id="login_hint" name="login_hint" value="{{.LoginHint}}" spellcheck="false" autocomplete="off">
+          <p class="help">The account to suggest, such as an email address. The person who signs in is compared with it.</p>
+        </div>
+      </div>
+      {{end}}
+      {{if .IsOAuth}}
+      <div class="field">
+        <label for="resource">API (resource) <span class="optional">optional</span></label>
+        <input id="resource" name="resource" type="url" value="{{.Resource}}" spellcheck="false" autocomplete="off">
+        <p class="help">Sent as the resource parameter (RFC 8707). Access tokens are checked for it as their audience.</p>
+      </div>
+      <div class="field">
+        <label for="machine_scopes">Scopes for machine tokens <span class="optional">optional</span></label>
+        <input id="machine_scopes" name="machine_scopes" value="{{.MachineScopes}}" spellcheck="false" autocomplete="off">
+      </div>
+      {{else}}
+      <div class="field-pair">
+        <div class="field">
+          <label for="session_minutes">Sessions last</label>
+          <select id="session_minutes" name="session_minutes">{{range $.LifetimeChoices}}<option value="{{.}}"{{if eq . $.Lifetime}} selected{{end}}>{{minutesLabel .}}</option>{{end}}</select>
+        </div>
+        <div class="field">
+          <label for="idle_minutes">End idle sessions after</label>
+          <select id="idle_minutes" name="idle_minutes">{{range $.IdleChoices}}<option value="{{.}}"{{if eq . $a.IdleMinutes}} selected{{end}}>{{if eq . 0}}Never{{else}}{{minutesLabel .}}{{end}}</option>{{end}}</select>
+        </div>
+      </div>
+      <p class="help">Shorten these to see what the identity provider does when someone has to sign in again.</p>
+      <fieldset class="field radios">
+        <legend class="label">When a sign-in starts at the identity provider, open</legend>
+        <label class="checkbox"><input type="radio" name="idp_landing" value="profile"{{if .LandsOnProfile}} checked{{end}}><span>The welcome screen</span></label>
+        <label class="checkbox"><input type="radio" name="idp_landing" value="diagnostics"{{if not .LandsOnProfile}} checked{{end}}><span>The test result</span></label>
+      </fieldset>
+      {{end}}
+    </div>
+  </section>
+
+  {{if not .IsOAuth}}
+  <section class="group" id="expected">
+    <h2>Expected {{if .IsSAML}}attributes{{else}}claims{{end}}</h2>
+    <div class="group-body">
+      <div class="field">
+        <label for="expected_list">{{if .IsSAML}}Attributes{{else}}Claims{{end}} the application needs <span class="optional">optional</span></label>
+        <textarea id="expected_list" name="expected" rows="4" spellcheck="false" placeholder="{{if .IsSAML}}email&#10;department = Engineering{{else}}email&#10;groups = Admins{{end}}">{{expectedText .Expected}}</textarea>
+        <p class="help">One per line. Add = and a value to expect that value. Every sign-in is checked, and a missing one fails the test. Or use Expect these on a test result.</p>
+      </div>
+    </div>
+  </section>
+  {{end}}
+
+  <section class="group">
+    <h2>Features</h2>
+    <div class="group-body optional-features">
+      <input type="hidden" name="optional" value="1">
+      {{if not .IsOAuth}}
+      <label class="feature"><input type="checkbox" name="logout" value="1"{{if .Logout}} checked{{end}}><span><strong>Single logout</strong><span class="muted">{{if .IsSAML}}Signing out also signs out at the identity provider, and SSOBench answers the logout requests it sends.{{else}}Signing out also ends the session at the provider's end-session endpoint, and back-channel logouts it sends are answered.{{end}}</span></span></label>
+      {{if .IsSAML}}<div class="feature-value feature-field">
+        <label for="idp_slo_url">Identity provider's single logout URL <span class="optional">optional</span></label>
+        <input id="idp_slo_url" name="idp_slo_url" type="url" value="{{.IdPSLOURL}}" spellcheck="false" autocomplete="off">
+        <p class="help">Where sign-outs are sent. Leave empty to use the one in the metadata{{with .IdP}}{{if or .SLORedirect .SLOPost}}{{else}}. This metadata has none, so sign-out stays local until you enter one{{end}}{{end}}.</p>
+      </div>{{end}}
+      <label class="feature"><input type="checkbox" name="login_url" value="1"{{if .LoginURL}} checked{{end}}><span><strong>Login URL</strong><span class="muted">A URL that starts a sign-in when opened, for identity providers that send people to the app.</span></span></label>
+      {{end}}
+      {{if .IsSAML}}
+      <label class="feature"><input type="checkbox" name="relay_state_on" value="1"{{if .RelayStateOn}} checked{{end}}><span><strong>Default relay state</strong><span class="muted">A deep link to set at the identity provider, checked on sign-ins it starts.</span></span></label>
+      {{end}}
+      <label class="feature"><input type="checkbox" name="directory" value="1"{{if .Directory}} checked{{end}}><span><strong>User directory</strong><span class="muted">Each sign-in must match an active account. Accounts can be provisioned with SCIM.</span></span></label>
+      <div class="feature-value feature-field directory-fields">
+        <label for="match_key">Match accounts on</label>
+        <select id="match_key" name="match_key">
+          <option value="nameid"{{if or (eq .MatchKey "") (eq .MatchKey "nameid")}} selected{{end}}>{{if .IsSAML}}NameID{{else}}Subject (sub){{end}}</option>
+          <option value="email"{{if eq .MatchKey "email"}} selected{{end}}>Email</option>
+          <option value="username"{{if eq .MatchKey "username"}} selected{{end}}>Username</option>
+          <option value="attr"{{if eq .MatchKey "attr"}} selected{{end}}>Another {{if .IsSAML}}attribute{{else}}claim{{end}}</option>
+        </select>
+        <div class="attr-field feature-field">
+          <label for="match_attr">{{if .IsSAML}}Attribute{{else}}Claim{{end}} name</label>
+          <input id="match_attr" name="match_attr" value="{{.MatchAttr}}" spellcheck="false" autocomplete="off">
+        </div>
+        <p class="help">Compared, ignoring case, with each account's username, email addresses and external ID.</p>
+        <label class="checkbox"><input type="checkbox" name="jit" value="1"{{if .JIT}} checked{{end}}><span>Create an account at first sign-in (just in time)</span></label>
+        <div class="feature-field">
+          <label for="scim_public">Address your identity provider uses for SCIM <span class="optional">optional</span></label>
+          <input id="scim_public" name="scim_public" type="url" value="{{.SCIMPublic}}" placeholder="https://scim.example.com" spellcheck="false" autocomplete="off"{{with fieldErr $.Errs "scim_public"}} aria-invalid="true" aria-describedby="err-scim_public"{{end}}>
+          <div id="err-scim_public">{{template "field-error" (fieldErr $.Errs "scim_public")}}</div>
+          <p class="help">A cloud identity provider can't reach a private address. If it reaches SSOBench through a reverse proxy or another public name, enter that address; the SCIM base URL under Set up uses it. Only /scim/ needs to be passed through.</p>
+        </div>
+      </div>
+      <p class="help">Values to register for these features appear under <a href="/apps/{{.ID}}/setup">Set up</a>.</p>
+    </div>
+  </section>
+
+  <div class="actions settings-save"><button class="btn btn-primary" type="submit">Save settings</button></div>
+</form>
+
+<section class="group danger-zone">
+  <h2>Delete this app</h2>
+  <div class="group-body">
+    <p class="muted">Removes its settings{{if .Directory}}, its {{len .Users}} {{plural (len .Users) "account" "accounts"}} and the SCIM token{{end}}. {{if .IsOAuth}}The redirect URI registered at your identity provider stops working.{{else}}Its sign-in page and the URLs registered at your identity provider stop working.{{end}} Past tests stay in Activity.</p>
+    <div><a class="btn btn-danger" href="/apps/{{.ID}}/delete">Delete app…</a></div>
+  </div>
+</section>
+{{end}}
+{{template "bottom" .}}

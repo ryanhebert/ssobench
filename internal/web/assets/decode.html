@@ -1,0 +1,25 @@
+{{define "title"}}Decode - SSOBench{{end}}
+{{template "top" .}}
+<div class="page-head">
+  <div>
+    <h1>Decode</h1>
+    <p class="lede">Read a JWT, a SAML message, a redirect URL or raw XML. Nothing is verified here, because there is no key to verify against.</p>
+  </div>
+</div>
+<form method="post" action="/decode" class="form form-wide">
+  <div class="field">
+    <label for="input" class="sr">Token or message</label>
+    <textarea id="input" name="input" rows="{{if .Decoded}}3{{else}}7{{end}}" spellcheck="false" required{{if not .Decoded}} autofocus{{end}} placeholder="Paste a token or message">{{.Input}}</textarea>
+  </div>
+  <div class="actions"><button class="btn btn-primary" type="submit">Decode</button>{{if .Input}}<a class="btn btn-secondary" href="/decode">Clear</a>{{end}}</div>
+</form>
+{{with .Decoded}}
+{{range .Parts}}
+<section class="section">
+  <h2>{{.Title}}</h2>
+  {{if .Rows}}<dl class="kv">{{range .Rows}}<div><dt>{{index . 0}}</dt><dd><span class="v">{{index . 1}}</span></dd></div>{{end}}</dl>
+  {{else}}<div class="codeblock"><button type="button" class="copy" data-copy-pre aria-label="Copy {{.Title}}" title="Copy">{{template "i" "copy"}}</button><pre tabindex="0" class="wrap">{{highlight .Body}}</pre></div>{{end}}
+</section>
+{{end}}
+{{end}}
+{{template "bottom" .}}

@@ -1,0 +1,22 @@
+{{define "title"}}Sign in to {{.App.Name}}{{end}}
+{{template "ptop" .}}
+{{with .App}}
+<div class="card">
+  <span class="app-mark" aria-hidden="true">{{.Name | initialsOf}}</span>
+  <h1>{{.Name}}</h1>
+  {{if $.Error}}
+  <p class="card-sub">{{$.Error}}</p>
+  {{else if $.Current}}
+  <p class="card-sub">You're signed in as<br><strong class="who-strong">{{$.Current.User}}</strong></p>
+  <a class="btn btn-primary btn-block" href="/a/{{.ID}}/welcome/{{$.Current.ResultID}}">Continue</a>
+  <form method="post" action="/a/{{.ID}}/logout/{{$.Current.ResultID}}"{{if .SLOToIdP}} target="_blank" data-then="/a/{{.ID}}"{{end}}><button class="btn btn-secondary btn-block signout-btn" type="submit">Sign out</button></form>
+  {{else}}
+  {{with $.Notice}}<p class="card-note">{{.}}</p>{{end}}
+  <p class="card-sub">Sign in to continue</p>
+  <form method="post" action="/a/{{.ID}}/login">
+    <button class="btn btn-primary btn-block" type="submit">Sign in with single sign-on</button>
+  </form>
+  {{end}}
+</div>
+{{end}}
+{{template "pbottom" .}}

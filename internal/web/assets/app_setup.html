@@ -1,0 +1,84 @@
+{{define "title"}}Set up - {{.App.Name}} - SSOBench{{end}}
+{{template "top" .}}
+{{with .App}}{{$a := .}}
+{{template "app-head" $}}
+
+<p class="tab-lede">Register these values at your identity provider.{{if .IsSAML}} <a class="tab-action" href="{{$.SP.EntityID}}" download="ssobench-metadata.xml">Download metadata</a>{{end}}</p>
+
+<section class="group">
+  <h2>Required</h2>
+  <div class="group-body">{{template "setup-required" $}}</div>
+</section>
+
+{{if or $.SLOURL $.PostLogoutURL $.LoginURL $.DeepLinkURL $.BackchannelURL}}
+<section class="group" id="features">
+  <h2>From features you turned on</h2>
+  <div class="group-body">
+    {{with $.SLOURL}}<div class="field"><span class="label">Single logout URL</span>{{template "copyfield" .}}</div>{{end}}
+    {{with $.PostLogoutURL}}<div class="field"><span class="label">Post-logout redirect URI</span>{{template "copyfield" .}}</div>{{end}}
+    {{with $.BackchannelURL}}<div class="field"><span class="label">Back-channel logout URI <span class="optional">if your provider supports it</span></span>{{template "copyfield" .}}<p class="help">The provider posts a logout token here to end a person's sessions in this app.</p></div>{{end}}
+    {{with $.LoginURL}}<div class="field"><span class="label">{{if $a.IsSAML}}Service provider login URL{{else}}Initiate login URI{{end}}</span>{{template "copyfield" .}}<p class="help">Opening it starts a sign-in.</p></div>{{end}}
+    {{with $.DeepLinkURL}}<div class="field"><span class="label">Default relay state</span>{{template "copyfield" .}}<p class="help">A deep link into this app. Sign-ins started at the identity provider are checked for it.</p></div>{{end}}
+  </div>
+</section>
+{{else if not .IsOAuth}}
+<p class="help group-note">{{if .IsSAML}}Single logout, a login URL and a default relay state{{else}}Single logout and a login URL{{end}} add values here when you turn them on in <a href="/apps/{{.ID}}/settings">Settings</a>.</p>
+{{end}}
+
+{{if .IsSAML}}{{with .Signer}}{{$st := certStatus .Cert.NotAfter}}
+<section class="group" id="signing">
+  <h2>Signing certificate</h2>
+  <div class="group-body">
+    <p class="muted">SSOBench signs its logout messages{{if $a.SignAuthn}} and sign-in requests{{end}} with this certificate. It is in the metadata too. If your identity provider asks for the service provider's certificate, upload this one.</p>
+    <dl class="kv">
+      <div><dt>Valid</dt><dd><span class="t-{{$st.Class}}">{{$st.Label}}</span>, until {{.Cert.NotAfter.UTC.Format "Jan 2, 2006"}}</dd></div>
+      <div><dt>SHA-1 fingerprint</dt><dd><span class="v">{{sha1 .Cert}}</span></dd></div>
+      <div><dt>Sign-in requests</dt><dd>{{if $a.SignAuthn}}Signed{{else}}Not signed. <a href="/apps/{{$a.ID}}/settings">Change in Settings</a>{{end}}</dd></div>
+    </dl>
+    <div><a class="btn btn-secondary btn-sm" href="/saml/{{$a.ID}}/cert.pem" download>Download certificate</a></div>
+  </div>
+</section>
+{{end}}{{end}}
+
+{{if and .IsSAML .EncryptAssertions}}{{with .EncKey}}{{$st := certStatus .Cert.NotAfter}}
+<section class="group" id="encryption">
+  <h2>Encryption certificate</h2>
+  <div class="group-body">
+    <p class="muted">Give this certificate to your identity provider to encrypt assertions for this app. It is in the metadata too. Choose AES-GCM with RSA-OAEP if you can; older choices are decrypted but flagged.</p>
+    <dl class="kv">
+      <div><dt>Valid</dt><dd><span class="t-{{$st.Class}}">{{$st.Label}}</span>, until {{.Cert.NotAfter.UTC.Format "Jan 2, 2006"}}</dd></div>
+      <div><dt>SHA-1 fingerprint</dt><dd><span class="v">{{sha1 .Cert}}</span></dd></div>
+    </dl>
+    <div><a class="btn btn-secondary btn-sm" href="/saml/{{$a.ID}}/encryption.pem" download>Download certificate</a></div>
+  </div>
+</section>
+{{end}}{{end}}
+
+{{if .Directory}}
+<section class="group" id="provisioning">
+  <h2>Provisioning (SCIM 2.0)</h2>
+  <div class="group-body">
+    <div class="field"><span class="label">Base URL</span>{{template "copyfield" $.SCIMURL}}</div>
+    <div class="field"><span class="label">Bearer token</span>
+      <details class="reveal">
+        <summary class="copyfield masked"><code>{{$.TokenMask}}</code><span class="reveal-show">Show</span></summary>
+        {{template "copyfield" .SCIMToken}}
+      </details>
+      <p class="help">Anyone who can open SSOBench can see this token.</p>
+      {{if $.ConfirmToken}}
+      <div class="confirm-inline" role="alert">
+        <p><strong>Generate a new token?</strong> The current token stops working at once, and provisioning from your identity provider fails until you give it the new one.</p>
+        <div class="actions">
+          <form method="post" action="/apps/{{.ID}}/scim-token"><input type="hidden" name="confirm" value="1"><button class="btn btn-danger-solid btn-sm" type="submit">Generate a new token</button></form>
+          <a class="btn btn-secondary btn-sm" href="/apps/{{.ID}}/setup#provisioning">Cancel</a>
+        </div>
+      </div>
+      {{else}}
+      <div><a class="btn btn-secondary btn-sm" href="/apps/{{.ID}}/setup?rotate=1#provisioning">Generate a new token…</a></div>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}
+{{end}}
+{{template "bottom" .}}

@@ -1,0 +1,37 @@
+{{define "title"}}Activity - SSOBench{{end}}
+{{template "top" .}}
+{{template "activity-head" .}}
+<form method="get" action="/history" class="filters" role="search">
+  <div class="field filter-q">
+    <label for="q" class="sr">Search by user, app or reference</label>
+    <input id="q" name="q" class="text" value="{{.Query}}" placeholder="Search by user, app or reference" autocomplete="off" spellcheck="false"{{with fieldErr .Errs "q"}} aria-invalid="true"{{end}}>
+  </div>
+  <div class="field">
+    <label for="f_app" class="sr">App</label>
+    <select id="f_app" name="app"><option value="">All apps</option>{{range .Apps}}<option value="{{.ID}}"{{if eq .ID $.FilterApp}} selected{{end}}>{{.Name}}</option>{{end}}</select>
+  </div>
+  <div class="field">
+    <label for="f_status" class="sr">Outcome</label>
+    <select id="f_status" name="status">
+      <option value="">Any outcome</option>
+      <option value="pass"{{if eq $.FilterStatus "pass"}} selected{{end}}>Passed</option>
+      <option value="warn"{{if eq $.FilterStatus "warn"}} selected{{end}}>With warnings</option>
+      <option value="fail"{{if eq $.FilterStatus "fail"}} selected{{end}}>Failed</option>
+    </select>
+  </div>
+  <button class="btn btn-secondary" type="submit">Filter</button>
+  {{if or .Query .FilterApp .FilterStatus}}<a class="quiet-link" href="/history">Clear</a>{{end}}
+</form>
+{{template "field-error" (fieldErr .Errs "q")}}
+{{if .Results}}
+<ul class="list">{{range .Results}}{{template "result-row" .}}{{end}}</ul>
+{{else if or .Query .FilterApp .FilterStatus}}
+<p class="muted">Nothing matches. <a href="/history">Show everything</a></p>
+{{else}}
+<div class="empty">
+  <p class="empty-title">Nothing tested yet</p>
+  <p class="muted">Open an app and test a sign-in. The last 50 tests are kept here, with a reference for each.</p>
+  <div class="actions"><a class="btn btn-secondary" href="/">Go to apps</a></div>
+</div>
+{{end}}
+{{template "bottom" .}}

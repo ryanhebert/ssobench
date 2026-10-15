@@ -1,0 +1,93 @@
+{{define "title"}}New app - SSOBench{{end}}
+{{template "top" .}}
+<a class="back" href="/">{{template "i" "back"}}Apps</a>
+<h1>New app</h1>
+
+{{if not .Form.Protocol}}
+<p class="lede">What does the application at your identity provider use?</p>
+<ul class="choices">
+  <li><a class="choice" href="/apps/new?protocol=saml">
+    <span class="choice-title">SAML 2.0</span>
+    <span class="choice-sub">The IdP posts a signed assertion to SSOBench. Common for enterprise web apps.</span>
+  </a></li>
+  <li><a class="choice" href="/apps/new?protocol=oidc">
+    <span class="choice-title">OpenID Connect</span>
+    <span class="choice-sub">SSOBench redeems an authorization code for an ID token. Common for modern web and mobile apps.</span>
+  </a></li>
+  <li><a class="choice" href="/apps/new?protocol=oauth">
+    <span class="choice-title">OAuth 2.1</span>
+    <span class="choice-sub">SSOBench gets access tokens for an API, by sign-in or as a machine client, and checks the server against OAuth 2.1.</span>
+  </a></li>
+</ul>
+{{else}}
+<p class="lede">{{if eq .Form.Protocol "saml"}}SAML 2.0{{else if eq .Form.Protocol "oauth"}}OAuth 2.1{{else}}OpenID Connect{{end}} app. <a href="/apps/new">Change</a></p>
+{{template "field-error" (fieldErr .Errs "protocol")}}
+<form method="post" action="/apps" class="form">
+  <input type="hidden" name="protocol" value="{{.Form.Protocol}}">
+  <div class="field">
+    <label for="name">Name</label>
+    <input id="name" name="name" class="text" value="{{.Form.Name}}" placeholder="{{if eq .Form.Protocol "saml"}}HR portal, staging{{else if eq .Form.Protocol "oauth"}}Orders API, staging{{else}}Intranet, staging{{end}}" autocomplete="off">
+  </div>
+  <fieldset class="field connect">
+    <legend class="label">Connect your identity provider <span class="optional">optional</span></legend>
+    <p class="help">{{if eq .Form.Protocol "saml"}}You can add this after registering SSOBench at your identity provider. The values to register are shown once the app exists.{{else}}You can add these after registering SSOBench at your identity provider, which is usually where the client ID comes from.{{end}}</p>
+    {{if eq .Form.Protocol "saml"}}
+    <div class="field">
+      <label for="metadata_url">Identity provider metadata URL</label>
+      <input id="metadata_url" name="metadata_url" type="url" value="{{.Form.MetadataURL}}" placeholder="https://sso.example.com/saml2/metadata" spellcheck="false" autocomplete="off"{{with fieldErr .Errs "metadata_url"}} aria-invalid="true" aria-describedby="err-metadata_url"{{end}}>
+      <div id="err-metadata_url">{{template "field-error" (fieldErr .Errs "metadata_url")}}</div>
+    </div>
+    <details class="disclosure inline"{{if .Form.MetadataXML}} open{{end}}>
+      <summary>{{template "i" "chevron"}}Paste metadata XML instead</summary>
+      <div class="field">
+        <label for="metadata_xml" class="sr">IdP metadata XML</label>
+        <textarea id="metadata_xml" name="metadata_xml" rows="6" spellcheck="false"{{with fieldErr .Errs "metadata_xml"}} aria-invalid="true"{{end}}>{{.Form.MetadataXML}}</textarea>
+        {{template "field-error" (fieldErr .Errs "metadata_xml")}}
+      </div>
+    </details>
+    {{else}}
+    <div class="field">
+      <label for="issuer">Issuer URL</label>
+      <input id="issuer" name="issuer" type="url" value="{{.Form.Issuer}}" placeholder="https://sso.example.com/{{if eq .Form.Protocol "oauth"}}oauth/server{{else}}oidc/app{{end}}" spellcheck="false" autocomplete="off"{{with fieldErr .Errs "issuer"}} aria-invalid="true" aria-describedby="err-issuer"{{end}}>
+      <div id="err-issuer">{{template "field-error" (fieldErr .Errs "issuer")}}</div>
+    </div>
+    <div class="field">
+      <label for="client_id">Client ID</label>
+      <input id="client_id" name="client_id" value="{{.Form.ClientID}}" spellcheck="false" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="client_secret">Client secret <span class="optional">optional</span></label>
+      <input id="client_secret" name="client_secret" type="password" autocomplete="off">
+      <p class="help">Leave empty for a public client. Kept in memory only{{if .Persisting}} unless you keep it across restarts{{end}}. Never shown on a page or in the log.</p>
+      {{if .Persisting}}<label class="checkbox"><input type="checkbox" name="keep_secret" value="1"><span>Keep it across restarts</span></label>{{end}}
+    </div>
+    {{if eq .Form.Protocol "oauth"}}
+    <details class="disclosure inline">
+    <summary>{{template "i" "chevron"}}Scopes and API</summary>
+    <div class="inline-fields">
+    <div class="field">
+      <label for="scopes">Scopes for sign-in</label>
+      <input id="scopes" name="scopes" value="{{.Form.Scopes}}" spellcheck="false">
+      <p class="help">Add <code>offline_access</code> to test refresh tokens, and the API's scopes to see them granted.</p>
+    </div>
+    <div class="field">
+      <label for="resource">API (resource) <span class="optional">optional</span></label>
+      <input id="resource" name="resource" type="url" placeholder="https://api.example.com" spellcheck="false" autocomplete="off">
+      <p class="help">Sent as the resource parameter (RFC 8707). Access tokens are checked for it as their audience.</p>
+    </div>
+    <div class="field">
+      <label for="machine_scopes">Scopes for machine tokens <span class="optional">optional</span></label>
+      <input id="machine_scopes" name="machine_scopes" spellcheck="false" autocomplete="off">
+      <p class="help">Requested with the client credentials grant.</p>
+    </div>
+    </div>
+    </details>
+    {{else}}
+    <input type="hidden" name="scopes" value="{{.Form.Scopes}}">
+    {{end}}
+    {{end}}
+  </fieldset>
+  <div class="actions"><button class="btn btn-primary" type="submit">Create app</button></div>
+</form>
+{{end}}
+{{template "bottom" .}}

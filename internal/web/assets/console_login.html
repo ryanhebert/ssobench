@@ -1,0 +1,29 @@
+{{define "title"}}Sign in - SSOBench{{end}}
+{{template "ptop" .}}
+{{with .Access}}
+<div class="card">
+  <span class="app-mark" aria-hidden="true">{{template "i" "shield"}}</span>
+  <h1>SSOBench console</h1>
+  <p class="card-sub">Sign in to manage apps and see results.</p>
+  {{if .PasskeyHere}}
+  <button type="button" class="btn btn-primary btn-block" data-passkey-login data-next="{{.Next}}">Sign in with a passkey</button>
+  <div class="field-error console-passkey-error" role="alert" data-passkey-error hidden>{{template "i" "alert"}}<div><p></p></div></div>
+  {{end}}
+  {{if or .Password .Startup}}
+  {{if .PasskeyHere}}<p class="or"><span>or</span></p>{{end}}
+  <form method="post" action="/console/login" class="console-form">
+    <input type="hidden" name="next" value="{{.Next}}">
+    <input type="text" name="username" value="admin" autocomplete="username" hidden>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required{{if not .PasskeyHere}} autofocus{{end}}{{with fieldErr $.Errs "password"}} aria-invalid="true"{{end}}>
+      {{template "field-error" (fieldErr $.Errs "password")}}
+    </div>
+    <button class="btn {{if .PasskeyHere}}btn-secondary{{else}}btn-primary{{end}} btn-block" type="submit">Sign in</button>
+  </form>
+  {{else if not .PasskeyHere}}
+  <p class="card-note">{{with .PasskeyWhy}}{{.}}{{else}}The passkeys were added at another address: {{range $i, $p := .Passkeys}}{{if $i}}, {{end}}{{$p.RPID}}{{end}}. Open SSOBench there.{{end}}</p>
+  {{end}}
+</div>
+{{end}}
+{{template "pbottom" .}}

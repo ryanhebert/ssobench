@@ -1,0 +1,184 @@
+{{define "top"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{block "title" .}}SSOBench{{end}}</title>
+<script src="/assets/theme.js"></script>
+<link rel="stylesheet" href="/assets/app.css">
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<script src="/assets/app.js" defer></script>
+</head>
+<body>
+{{template "sprite"}}
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/" aria-label="SSOBench apps"><span class="brand-mark">{{template "i" "shield"}}</span><span class="brand-name">SSOBench</span></a>
+    <div class="topbar-end">
+      <nav class="nav" aria-label="Main">
+        <a href="/"{{if eq .Nav "apps"}} aria-current="page"{{end}}>Apps</a>
+        <a href="/history"{{if or (eq .Nav "history") (eq .Nav "log")}} aria-current="page"{{end}}>Activity</a>
+        <a href="/decode"{{if eq .Nav "decode"}} aria-current="page"{{end}}>Decode</a>
+        <a href="/settings"{{if eq .Nav "settings"}} aria-current="page"{{end}}>Settings</a>
+      </nav>
+      <button type="button" class="theme" data-theme-toggle aria-label="Theme: system" title="Theme: system">
+        <svg class="i t-system" aria-hidden="true"><use href="#i-monitor"/></svg>
+        <svg class="i t-light" aria-hidden="true"><use href="#i-sun"/></svg>
+        <svg class="i t-dark" aria-hidden="true"><use href="#i-moon"/></svg>
+      </button>
+      {{if .Guarded}}<form method="post" action="/console/logout" class="console-out"><button type="submit" class="nav-btn" aria-label="Sign out of the console" title="Sign out">{{template "i" "logout"}}<span>Sign out</span></button></form>{{end}}
+    </div>
+  </div>
+</header>
+<main id="main" class="main">
+{{if .Error}}<div class="banner banner-fail" role="alert">{{template "i" "alert"}}<p>{{.Error}}</p></div>{{end}}
+{{if .Notice}}<div class="banner banner-pass" role="status">{{template "i" "check"}}<p>{{.Notice}}</p></div>{{end}}
+{{end}}
+
+{{define "bottom"}}
+</main>
+<footer class="foot">SSOBench {{.Version}}{{if not .Persisting}}. Nothing is saved; everything is cleared when SSOBench stops.{{end}}</footer>
+</body>
+</html>
+{{end}}
+
+{{define "i"}}<svg class="i" aria-hidden="true" focusable="false"><use href="#i-{{.}}"/></svg>{{end}}
+
+{{define "sprite"}}<svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true">
+<defs>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 8v5M12 16.5h.01"/><circle cx="12" cy="12" r="9"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+<symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M14 8l4 4-4 4M18 12H8"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01" stroke-width="3"/></symbol>
+<symbol id="i-dash" viewBox="0 0 24 24"><path d="M7 12h10"/></symbol>
+</defs>
+</svg>{{end}}
+
+{{/* A status mark: pass, warn, fail or none. */}}
+{{define "mark"}}<span class="mark mark-{{.}}" aria-hidden="true">{{if eq . "pass"}}{{template "i" "check"}}{{else if eq . "warn"}}{{template "i" "alert"}}{{else if eq . "fail"}}{{template "i" "x"}}{{else}}{{template "i" "dash"}}{{end}}</span>{{end}}
+
+{{define "copyfield"}}<div class="copyfield"><code>{{.}}</code><button type="button" class="copy" data-copy="{{.}}" aria-label="Copy {{.}}" title="Copy">{{template "i" "copy"}}</button></div>{{end}}
+
+{{define "checks"}}
+<ul class="checks">
+{{range .}}
+  <li class="check c-{{.Status}}" data-check="{{.Name}}" data-status="{{.Status}}">
+    {{if eq .Status "pass"}}{{template "mark" "pass"}}{{else if eq .Status "fail"}}{{template "mark" "fail"}}{{else if eq .Status "warn"}}{{template "mark" "warn"}}{{else}}{{template "mark" "none"}}{{end}}
+    <div class="check-body">
+      <p><span class="sr">{{.Status}}: </span><strong>{{.Name}}</strong> <span class="muted">{{.Detail}}</span></p>
+      {{if or .Got .Want}}{{$d := diff .Got .Want}}
+      <dl class="compare">
+        <div><dt>Received</dt><dd>{{if .Got}}<code>{{$d.Pre}}<mark>{{$d.Got}}</mark>{{$d.Suf}}</code>{{else}}<em class="muted">nothing</em>{{end}}</dd></div>
+        <div><dt>Expected</dt><dd><code>{{$d.Pre}}<mark class="want">{{$d.Want}}</mark>{{$d.Suf}}</code><button type="button" class="copy copy-inline" data-copy="{{.Want}}" aria-label="Copy the expected value" title="Copy">{{template "i" "copy"}}</button></dd></div>
+      </dl>
+      {{end}}
+      {{if .Fix}}<p class="fix">{{.Fix}}</p>{{end}}
+    </div>
+  </li>
+{{end}}
+</ul>
+{{end}}
+
+{{define "pre"}}<div class="codeblock"><button type="button" class="copy" data-copy-pre aria-label="Copy {{.Title}}" title="Copy">{{template "i" "copy"}}</button><pre tabindex="0"{{if or (hasSuffix .Title "(encoded)") (eq .Title "Signatures")}} class="wrap"{{end}}>{{highlight .Pre}}</pre></div>{{end}}
+
+{{define "kv"}}
+<dl class="kv">
+{{range .}}<div{{with .Status}} class="row-{{.}}"{{end}}><dt{{with .Title}} title="{{.}}" class="has-title"{{end}}>{{.K}}</dt><dd><span class="v">{{.V}}</span>{{if .Hint}}<span class="hint">{{.Hint}}</span>{{end}}</dd></div>{{end}}
+</dl>
+{{end}}
+
+{{define "detail-section"}}
+<details class="disclosure">
+  <summary>{{template "i" "chevron"}}{{.Title}}{{if .Rows}} <span class="muted">{{len .Rows}} {{plural (len .Rows) "item" "items"}}</span>{{end}}</summary>
+  <div class="disclosure-body">
+    {{if .Note}}<p class="note">{{.Note}}</p>{{end}}
+    {{if .Rows}}{{template "kv" .Rows}}{{end}}
+    {{if and .Pre (not .Rows)}}{{template "pre" .}}{{end}}
+  </div>
+</details>
+{{end}}
+
+{{define "flow"}}
+<details class="disclosure flow"{{if .Open}} open{{end}}>
+  <summary>{{template "i" "chevron"}}<span class="flow-title">{{.Label}}</span><span class="flow-meta"><span class="flow-outcome t-{{.Tone}}">{{.DisplayOutcome}}</span><time datetime="{{.Started.UTC.Format "2006-01-02T15:04:05Z"}}">{{utc .Started}}</time></span></summary>
+  <div class="disclosure-body">
+    {{template "timeline" .Events}}
+    {{if .ResultID}}<p class="flow-foot"><a href="/result/{{.ResultID}}">Open the result</a></p>{{end}}
+  </div>
+</details>
+{{end}}
+
+{{define "timeline"}}
+<ol class="timeline">
+{{range .}}
+  <li class="ev ev-{{.Level}}">
+    <span class="ev-time">+{{ms .Offset}}</span>
+    <div class="ev-main">
+      <p><span class="sr">{{.Level}}: </span><strong>{{.Step}}</strong> {{.Message}}{{if .Took}} <span class="muted">(took {{ms .Took}})</span>{{end}}</p>
+      {{if .Detail}}<details class="ev-detail"><summary>{{template "i" "chevron"}}Details</summary><div class="codeblock"><button type="button" class="copy" data-copy-pre aria-label="Copy details" title="Copy">{{template "i" "copy"}}</button><pre tabindex="0">{{highlight .Detail}}</pre></div></details>{{end}}
+    </div>
+  </li>
+{{end}}
+</ol>
+{{end}}
+
+{{define "result-row"}}
+<li class="row">
+  {{template "mark" .Status}}
+  <a class="row-main" href="/result/{{.ID}}">
+    <span class="row-title">{{.RowTitle}}</span>
+    <span class="row-sub">{{if .AppName}}<span class="row-app">{{.AppName}}: </span>{{end}}{{.Summary}}</span>
+  </a>
+  <span class="row-aside"><span class="row-source">{{.Source}}</span><time datetime="{{.Time.UTC.Format "2006-01-02T15:04:05Z"}}" title="{{utc .Time}}">{{ago .Time}}</time></span>
+</li>
+{{end}}
+
+{{/* The plain layout: what someone signing in to an app sees. No console chrome. */}}
+{{define "ptop"}}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{template "title" .}}</title>
+<script src="/assets/theme.js"></script>
+<link rel="stylesheet" href="/assets/app.css">
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<script src="/assets/app.js" defer></script>
+</head>
+<body class="plain">
+{{template "sprite"}}
+<main class="plain-main">
+{{end}}
+
+{{define "pbottom"}}
+</main>
+<footer class="plain-foot">{{if .App}}A test application served by SSOBench{{else}}SSOBench {{.Version}}{{end}}<button type="button" class="theme-text" data-theme-toggle aria-label="Theme: system">Theme: system</button></footer>
+</body>
+</html>
+{{end}}
+
+{{/* An inline field error: call with (fieldErr $.Errs "name"). */}}
+{{define "field-error"}}{{with .}}<div class="field-error" role="alert">{{template "i" "alert"}}<div><p>{{.Msg}}</p>{{if .Detail}}<details><summary>Technical details</summary><code>{{.Detail}}</code></details>{{end}}</div></div>{{end}}{{end}}
+
+{{define "activity-head"}}
+<h1>Activity</h1>
+<nav class="tabs" aria-label="Activity">
+  <a href="/history"{{if eq .Nav "history"}} aria-current="page"{{end}}>Tests</a>
+  <a href="/log"{{if eq .Nav "log"}} aria-current="page"{{end}}>Log</a>
+</nav>
+{{end}}

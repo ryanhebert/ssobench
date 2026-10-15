@@ -1,0 +1,16 @@
+{{define "title"}}Log - Activity - SSOBench{{end}}
+{{template "top" .}}
+{{template "activity-head" .}}
+<div class="log-tools">
+  <p class="muted">Every step of every test, sign-out and app change. Secrets are never logged; tokens are shortened here and shown in full only on the result.</p>
+  {{if .Flows}}<a class="btn btn-secondary btn-sm" href="/log.txt" download>{{template "i" "download"}}Download</a>{{end}}
+</div>
+{{if .Flows}}
+<div class="flows">{{range .Flows}}{{template "flow" .}}{{end}}</div>
+{{else}}
+<div class="empty">
+  <p class="empty-title">Nothing logged yet</p>
+  <p class="muted">Metadata loads, requests, responses, signature checks and timings appear here as you test.</p>
+</div>
+{{end}}
+{{template "bottom" .}}

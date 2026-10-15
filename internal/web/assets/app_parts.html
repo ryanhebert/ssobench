@@ -1,0 +1,113 @@
+{{/* Parts shared by the app's pages: Overview, Set up, Users and Settings. */}}
+
+{{define "app-head"}}{{$a := .App}}
+<a class="back" href="/">{{template "i" "back"}}Apps</a>
+<h1>{{$a.Name}}</h1>
+<p class="lede">{{$a.ProtocolName}} app{{with $a.IdPLabel}} at {{.}}{{else}}, not connected to an identity provider yet{{end}}</p>
+{{if not $a.Connected}}
+<nav class="tabs" aria-label="{{$a.Name}}">
+  <a href="/apps/{{$a.ID}}"{{if eq $.Tab "overview"}} aria-current="page"{{end}}>Set up</a>
+  <a href="/apps/{{$a.ID}}/settings"{{if eq $.Tab "settings"}} aria-current="page"{{end}}>Settings</a>
+</nav>
+{{else}}
+<nav class="tabs" aria-label="{{$a.Name}}">
+  <a href="/apps/{{$a.ID}}"{{if eq $.Tab "overview"}} aria-current="page"{{end}}>Overview</a>
+  <a href="/apps/{{$a.ID}}/setup"{{if eq $.Tab "setup"}} aria-current="page"{{end}}>Set up</a>
+  <a href="/apps/{{$a.ID}}/users"{{if eq $.Tab "users"}} aria-current="page"{{end}}>Users{{if $a.Directory}} <span class="tab-count">{{len $a.Users}}</span>{{end}}</a>
+  {{if $a.HasSessions}}<a href="/apps/{{$a.ID}}/sessions"{{if eq $.Tab "sessions"}} aria-current="page"{{end}}>Sessions{{with $a.ActiveSessions}} <span class="tab-count">{{.}}</span>{{end}}</a>{{end}}
+  <a href="/apps/{{$a.ID}}/settings"{{if eq $.Tab "settings"}} aria-current="page"{{end}}>Settings</a>
+</nav>
+{{end}}
+{{end}}
+
+{{define "setup-required"}}
+  {{if .App.IsSAML}}
+  <div class="field"><span class="label">Metadata URL (also the entity ID)</span>{{template "copyfield" .SP.EntityID}}<p class="help">Import it at your identity provider to fill in everything, or enter the values by hand.</p></div>
+  <div class="field"><span class="label">ACS URL</span>{{template "copyfield" .SP.ACSURL}}<p class="help">Sign the assertion and send the response with HTTP-POST. {{if .App.EncryptAssertions}}Encrypt the assertion with the encryption certificate below.{{else}}Leave assertion encryption off, or turn on Expect encrypted assertions in Settings first.{{end}}</p></div>
+  {{else if .App.IsOAuth}}
+  <div class="field"><span class="label">Redirect URI</span>{{template "copyfield" .Redirect}}</div>
+  <p class="help">Allow the authorization code grant with PKCE (S256), refresh tokens to test rotation, and the client credentials grant to test machine tokens.</p>
+  {{else}}
+  <div class="field"><span class="label">Redirect URI</span>{{template "copyfield" .Redirect}}</div>
+  <p class="help">SSOBench uses the authorization code flow with PKCE. Give it the scopes <code>openid</code>, <code>profile</code> and <code>email</code>.</p>
+  {{end}}
+  {{if .ByIP}}<p class="note note-warn">You opened SSOBench by IP address. Identity providers are usually set up with a host name; if yours is, open SSOBench at that name so these values match.</p>{{end}}
+{{end}}
+
+{{define "idp-details"}}{{$a := .App}}
+  {{if $a.IsSAML}}{{with $a.IdP}}
+  <details class="disclosure">
+    <summary>{{template "i" "chevron"}}Identity provider details</summary>
+    <div class="disclosure-body">
+      <dl class="kv">
+        <div><dt>Entity ID</dt><dd><span class="v">{{.EntityID}}</span></dd></div>
+        {{if .SSORedirect}}<div><dt>Single sign-on URL</dt><dd><span class="v">{{.SSORedirect}}</span></dd></div>{{else if .SSOPost}}<div><dt>Single sign-on URL</dt><dd><span class="v">{{.SSOPost}}</span></dd></div>{{end}}
+        {{$slo := $a.IdPLogoutURLView}}{{if $slo.URL}}<div><dt>Single logout URL</dt><dd><span class="v">{{$slo.URL}}</span><span class="hint">{{capitalize $slo.Source}}</span></dd></div>{{end}}
+        {{range .Certs}}{{$st := certStatus .NotAfter}}
+        <div><dt>Signing certificate</dt><dd><span class="t-{{$st.Class}}">{{$st.Label}}</span>, until {{.NotAfter.UTC.Format "Jan 2, 2006"}} ({{until .NotAfter}})<span class="hint v">SHA-1 {{sha1 .}}</span></dd></div>
+        {{end}}
+        <div><dt>Metadata loaded</dt><dd>{{ago $a.IdPLoadedAt}}{{if $a.MetadataURL}}, reloaded at every sign-in{{end}}</dd></div>
+      </dl>
+    </div>
+  </details>
+  {{end}}{{else}}{{with $a.Provider}}
+  <details class="disclosure">
+    <summary>{{template "i" "chevron"}}Identity provider details</summary>
+    <div class="disclosure-body">
+      <dl class="kv">
+        <div><dt>Issuer</dt><dd><span class="v">{{.Issuer}}</span></dd></div>
+        <div><dt>Authorization endpoint</dt><dd><span class="v">{{.AuthorizationEndpoint}}</span></dd></div>
+        <div><dt>Token endpoint</dt><dd><span class="v">{{.TokenEndpoint}}</span></dd></div>
+        {{with .UserinfoEndpoint}}<div><dt>UserInfo endpoint</dt><dd><span class="v">{{.}}</span></dd></div>{{end}}
+        <div><dt>Keys (JWKS)</dt><dd><span class="v">{{.JWKSURI}}</span></dd></div>
+        {{with .EndSessionEndpoint}}<div><dt>End-session endpoint</dt><dd><span class="v">{{.}}</span></dd></div>{{end}}
+        {{with .IntrospectionEndpoint}}<div><dt>Introspection endpoint</dt><dd><span class="v">{{.}}</span></dd></div>{{end}}
+        {{with .RevocationEndpoint}}<div><dt>Revocation endpoint</dt><dd><span class="v">{{.}}</span></dd></div>{{end}}
+        {{with .GrantTypes}}<div><dt>Grant types</dt><dd><span class="v">{{range $i, $m := .}}{{if $i}}, {{end}}{{$m}}{{end}}</span></dd></div>{{end}}
+        {{with .TokenAuthMethods}}<div><dt>Client authentication</dt><dd><span class="v">{{range $i, $m := .}}{{if $i}}, {{end}}{{$m}}{{end}}</span></dd></div>{{end}}
+        {{with .CodeChallengeMethods}}<div><dt>PKCE methods</dt><dd><span class="v">{{range $i, $m := .}}{{if $i}}, {{end}}{{$m}}{{end}}</span></dd></div>{{end}}
+        <div><dt>Discovery loaded</dt><dd>{{ago $a.ProviderAt}}</dd></div>
+      </dl>
+    </div>
+  </details>
+  {{end}}{{end}}
+{{end}}
+
+{{/* connect-form: the identity provider fields, alone (step 2 of setup). */}}
+{{define "connect-fields"}}{{$a := .App}}
+  {{if $a.IsSAML}}
+  <div class="field">
+    <label for="metadata_url">Identity provider metadata URL</label>
+    <input id="metadata_url" name="metadata_url" type="url" value="{{.Form.MetadataURL}}" spellcheck="false" autocomplete="off"{{with fieldErr .Errs "metadata_url"}} aria-invalid="true" aria-describedby="err-metadata_url"{{end}}>
+    <div id="err-metadata_url">{{template "field-error" (fieldErr .Errs "metadata_url")}}</div>
+    {{if and $a.Connected .Form.MetadataURL}}<p class="help">Reloaded at every sign-in, so a new signing certificate is picked up.</p>{{end}}
+  </div>
+  <details class="disclosure inline"{{if or (and .Form.MetadataXML (not .Form.MetadataURL)) (fieldErr .Errs "metadata_xml")}} open{{end}}>
+    <summary>{{template "i" "chevron"}}{{if and .Form.MetadataXML (not .Form.MetadataURL)}}Pasted metadata XML (in use){{else}}Paste metadata XML instead{{end}}</summary>
+    <div class="field">
+      <label for="metadata_xml" class="sr">Identity provider metadata XML</label>
+      <textarea id="metadata_xml" name="metadata_xml" rows="5" spellcheck="false">{{.Form.MetadataXML}}</textarea>
+      {{template "field-error" (fieldErr .Errs "metadata_xml")}}
+      <p class="help">Used only when the metadata URL is empty.</p>
+    </div>
+  </details>
+  {{else}}
+  <div class="field">
+    <label for="issuer">Issuer URL</label>
+    <input id="issuer" name="issuer" type="url" value="{{.Form.Issuer}}" spellcheck="false" autocomplete="off"{{with fieldErr .Errs "issuer"}} aria-invalid="true" aria-describedby="err-issuer"{{end}}>
+    <div id="err-issuer">{{template "field-error" (fieldErr .Errs "issuer")}}</div>
+  </div>
+  <div class="field">
+    <label for="client_id">Client ID</label>
+    <input id="client_id" name="client_id" value="{{.Form.ClientID}}" spellcheck="false" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="client_secret">Client secret <span class="optional">{{if $a.HasSecret}}saved{{else}}optional{{end}}</span></label>
+    <input id="client_secret" name="client_secret" type="password" autocomplete="off"{{if $a.HasSecret}} placeholder="Leave empty to keep the current secret"{{end}}>
+    <p class="help">Leave empty for a public client. Kept in memory only{{if $.Persisting}} unless you keep it across restarts{{end}}. Never shown on a page or in the log.</p>
+    {{if $a.HasSecret}}<label class="checkbox"><input type="checkbox" name="clear_secret" value="1"><span>Forget the client secret</span></label>{{end}}
+    {{if $.Persisting}}<label class="checkbox"><input type="checkbox" name="keep_secret" value="1"{{if $a.KeepSecret}} checked{{end}}><span>Keep it across restarts</span></label>{{end}}
+  </div>
+  {{if not $a.Connected}}<input type="hidden" name="scopes" value="{{.Form.Scopes}}">{{end}}
+  {{end}}
+{{end}}

@@ -1,0 +1,156 @@
+{{define "title"}}Users - {{.App.Name}} - SSOBench{{end}}
+{{template "top" .}}
+{{with .App}}{{$a := .}}
+{{template "app-head" $}}
+
+<nav class="subtabs" aria-label="Users">
+  <a href="/apps/{{.ID}}/users"{{if eq $.View "accounts"}} aria-current="page"{{end}}>Accounts{{if .Directory}} <span class="tab-count">{{len .Users}}</span>{{end}}</a>
+  {{if .Directory}}
+  <a href="/apps/{{.ID}}/users?view=groups"{{if eq $.View "groups"}} aria-current="page"{{end}}>Groups <span class="tab-count">{{len .Groups}}</span></a>
+  <a href="/apps/{{.ID}}/users?view=provisioning"{{if eq $.View "provisioning"}} aria-current="page"{{end}}>Provisioning <span class="tab-count">{{len .ProvLog}}</span></a>
+  {{end}}
+  <a href="/apps/{{.ID}}/users?view=access"{{if eq $.View "access"}} aria-current="page"{{end}}>Access{{with .AccessRules}} <span class="tab-count">{{len .}}</span>{{end}}</a>
+</nav>
+
+{{if eq $.View "access"}}
+<p class="muted access-intro">Rules give people a role in this app. The first rule that matches decides. {{if $.Rules}}A sign-in that matches no rule is refused.{{else}}With no rules, everyone who signs in has access.{{end}}</p>
+{{if $.Rules}}
+<ol class="rules">{{range $i, $r := $.Rules}}
+  <li>
+    <span class="rule-n">{{add $i 1}}</span>
+    <div class="rule-main"><span class="tag tag-role">{{.Role}}</span> <span class="muted">when</span> {{ruleLead .}} <strong>{{ruleValues .}}</strong></div>
+    <form method="post" action="/apps/{{$a.ID}}/rules/{{add $i 1}}/delete"><button class="btn btn-secondary btn-sm" type="submit">Remove<span class="sr"> rule {{add $i 1}}</span></button></form>
+  </li>{{end}}
+</ol>
+{{end}}
+<details class="tool"{{if or $.UserErr (not $.Rules)}} open{{end}}>
+  <summary class="btn btn-secondary btn-sm">Add a rule{{template "i" "chevron"}}</summary>
+  <form method="post" action="/apps/{{.ID}}/rules" class="form tool-body">
+    {{with $.UserErr}}<div class="field-error" role="alert">{{template "i" "alert"}}<div><p>{{.}}</p></div></div>{{end}}
+    <div class="field"><label for="r_role">Role</label><input id="r_role" name="role" autocomplete="off"><p class="help">For example Admin, Editor or Viewer.</p></div>
+    <fieldset class="field radios">
+      <legend class="label">Given when</legend>
+      <label class="checkbox"><input type="radio" name="source" value="attr" checked><span>The sign-in carries a value in {{if .IsSAML}}an attribute{{else}}a claim{{end}}</span></label>
+      <label class="checkbox"><input type="radio" name="source" value="group"{{if not .Directory}} disabled{{end}}><span>The account is in a group{{if not .Directory}} <span class="muted">(needs the user directory)</span>{{end}}</span></label>
+    </fieldset>
+    <div class="field rule-name"><label for="r_name">{{if .IsSAML}}Attribute{{else}}Claim{{end}} name</label><input id="r_name" name="name" spellcheck="false" autocomplete="off"><p class="help">For example {{if .IsSAML}}role or memberOf{{else}}groups or roles{{end}}.</p></div>
+    <div class="field"><label for="r_values">Values</label><input id="r_values" name="values" autocomplete="off"><p class="help">Separate several with commas. Compared ignoring case.</p></div>
+    <div class="actions"><button class="btn btn-primary" type="submit">Save rule</button></div>
+  </form>
+</details>
+
+<section class="section">
+  <h2>Check the latest sign-in</h2>
+  {{with $.RuleTest}}
+  <div class="tester">
+    {{if .Decision.Allowed}}{{template "mark" "pass"}}{{else}}{{template "mark" "fail"}}{{end}}
+    <div>
+      <p><strong>{{.Result.RowTitle}}</strong> {{if .Decision.Allowed}}{{with .Decision.Role}}would get the role <strong>{{.}}</strong>{{else}}would have access{{end}}{{else}}would be refused{{end}}.</p>
+      <p class="muted">{{capitalize .Decision.Why}}. Checked against the <a href="/result/{{.Result.ID}}">sign-in {{ago .Result.Time}}</a> and the directory as it is now.</p>
+    </div>
+  </div>
+  {{else}}
+  <p class="muted">Sign in once, and the rules are checked against what that sign-in sent, before anyone has to sign in again.</p>
+  {{end}}
+</section>
+
+{{else if not .Directory}}
+<div class="empty">
+  <p class="empty-title">Keep accounts for this app</p>
+  <p class="muted">With a user directory, every sign-in must match an active account, as in a real application. Your identity provider can create, update and deactivate accounts with SCIM, and you can add them here.</p>
+  <div class="actions"><form method="post" action="/apps/{{.ID}}/directory"><button class="btn btn-primary" type="submit">Turn on the user directory</button></form></div>
+</div>
+{{else}}
+
+{{if eq $.View "groups"}}
+{{if $.Groups}}
+<ul class="list">{{range $.Groups}}
+  <li class="row">
+    <span class="avatar avatar-sm avatar-group" aria-hidden="true">{{initialsOf .Name}}</span>
+    <div class="row-main"><span class="row-title">{{.Name}}</span><span class="row-sub">{{if .Members}}{{range $i, $m := .Members}}{{if $i}}, {{end}}{{$m}}{{end}}{{else}}No members{{end}}</span></div>
+    <span class="row-aside">{{len .Members}} {{plural (len .Members) "member" "members"}}</span>
+  </li>{{end}}
+</ul>
+{{else}}
+<p class="muted">No groups yet. Groups appear here when your identity provider provisions them with SCIM.</p>
+{{end}}
+
+{{else if eq $.View "provisioning"}}
+{{if $.ProvLog}}
+<ul class="prov">{{range $.ProvLog}}
+  <li><details class="prov-item">
+    <summary>{{template "i" "chevron"}}{{if .OK}}{{template "mark" "pass"}}{{else}}{{template "mark" "fail"}}{{end}}<span class="prov-main"><span class="prov-what">{{.Title}}</span><code class="prov-req">{{.Method}} {{.Path}} <span class="t-{{if .OK}}pass{{else}}fail{{end}}">{{.Status}}</span></code></span><time datetime="{{.Time.UTC.Format "2006-01-02T15:04:05Z"}}" title="{{utc .Time}}">{{ago .Time}}</time></summary>
+    <div class="prov-pair">
+      <div><p class="label">Request</p>{{if .Request}}<div class="codeblock"><button type="button" class="copy" data-copy-pre aria-label="Copy the request" title="Copy">{{template "i" "copy"}}</button><pre tabindex="0">{{highlight .Request}}</pre></div>{{else}}<p class="muted">No body</p>{{end}}</div>
+      <div><p class="label">Response</p>{{if .Response}}<div class="codeblock"><button type="button" class="copy" data-copy-pre aria-label="Copy the response" title="Copy">{{template "i" "copy"}}</button><pre tabindex="0">{{highlight .Response}}</pre></div>{{else}}<p class="muted">No body</p>{{end}}</div>
+    </div>
+  </details></li>{{end}}
+</ul>
+{{else}}
+<p class="muted">Requests from your identity provider to this app's SCIM endpoint appear here, with what they changed. The base URL and token are under <a href="/apps/{{.ID}}/setup#provisioning">Set up</a>.</p>
+{{end}}
+
+{{else}}
+<div class="user-tools">
+  <details class="tool"{{if $.UserErr}} open{{end}}>
+    <summary class="btn btn-secondary btn-sm">Add user{{template "i" "chevron"}}</summary>
+    <form method="post" action="/apps/{{.ID}}/users" class="form tool-body">
+      {{with $.UserErr}}<div class="field-error" role="alert">{{template "i" "alert"}}<div><p>{{.}}</p></div></div>{{end}}
+      <div class="field"><label for="u_username">Username</label><input id="u_username" name="userName" required spellcheck="false" autocomplete="off"></div>
+      <div class="field"><label for="u_email">Email <span class="optional">optional</span></label><input id="u_email" name="email" type="email" spellcheck="false" autocomplete="off"></div>
+      <div class="field-pair">
+        <div class="field"><label for="u_given">First name <span class="optional">optional</span></label><input id="u_given" name="givenName" autocomplete="off"></div>
+        <div class="field"><label for="u_family">Last name <span class="optional">optional</span></label><input id="u_family" name="familyName" autocomplete="off"></div>
+      </div>
+      <div class="actions"><button class="btn btn-primary" type="submit">Save user</button></div>
+    </form>
+  </details>
+  <details class="tool"{{if $.ImportErr}} open{{end}}>
+    <summary class="btn btn-secondary btn-sm">Import CSV{{template "i" "chevron"}}</summary>
+    <form method="post" action="/apps/{{.ID}}/users/import" enctype="multipart/form-data" class="form tool-body">
+      {{with $.ImportErr}}<div class="field-error" role="alert">{{template "i" "alert"}}<div><p>{{.}}</p></div></div>{{end}}
+      <p class="muted">Columns: <code>userName</code>, <code>email</code>, <code>givenName</code>, <code>familyName</code>, <code>active</code>. A header row is optional. Only userName is required, and active defaults to true. Existing usernames are updated.</p>
+      <div class="field"><label for="csv_file">CSV file</label><input id="csv_file" name="file" type="file" accept=".csv,text/csv"></div>
+      <div class="field"><label for="csv_text">Or paste it</label><textarea id="csv_text" name="csv" rows="4" spellcheck="false"></textarea></div>
+      <div class="actions"><button class="btn btn-primary" type="submit">Import</button></div>
+    </form>
+  </details>
+  {{if gt (len $a.Users) 10}}
+  <form method="get" action="/apps/{{.ID}}/users" class="user-search" role="search">
+    <label for="q" class="sr">Search accounts</label>
+    <input id="q" name="q" value="{{$.Query}}" placeholder="Search accounts" autocomplete="off">
+  </form>
+  {{end}}
+</div>
+
+{{if $.Users}}
+<ul class="list users">{{range $.Users}}
+  <li class="row user{{if not .Active}} user-off{{end}}">
+    <span class="avatar avatar-sm" aria-hidden="true">{{initialsOf (or .Name .UserName)}}</span>
+    <div class="row-main">
+      <span class="row-title">{{with .Name}}{{.}}{{else}}{{.UserName}}{{end}}{{if not .Active}} <span class="pill pill-off">Deactivated</span>{{end}}</span>
+      <span class="row-sub">{{.UserName}}{{with otherEmail .}}, {{.}}{{end}}</span>
+    </div>
+    <span class="row-aside"><span>{{sourceLabel .Source}}</span><span>{{if .LastSignIn.IsZero}}Never signed in{{else}}Signed in {{ago .LastSignIn}}{{end}}</span></span>
+    <details class="menu">
+      <summary class="btn btn-secondary btn-sm" aria-label="Actions for {{.UserName}}" title="Actions">{{template "i" "more"}}</summary>
+      <div class="menu-body">
+        <form method="post" action="/apps/{{$a.ID}}/users/{{.ID}}/active"><input type="hidden" name="active" value="{{if .Active}}0{{else}}1{{end}}"><button type="submit">{{if .Active}}Deactivate{{else}}Activate{{end}}</button></form>
+        <form method="post" action="/apps/{{$a.ID}}/users/{{.ID}}/delete"><button type="submit" class="danger">Delete</button></form>
+      </div>
+    </details>
+  </li>{{end}}
+</ul>
+{{else if $.Query}}
+<p class="muted">No accounts match "{{$.Query}}".</p>
+{{else}}
+<div class="empty empty-sm">
+  <p class="empty-title">No accounts yet</p>
+  <p class="muted">Every sign-in fails until the person has an account. Provision people with SCIM, add them here, or turn on just-in-time accounts in Settings.</p>
+</div>
+{{end}}
+<p class="help users-foot">Matching on {{matchLabel .}}. Just-in-time accounts {{if .JIT}}on{{else}}off{{end}}. <a href="/apps/{{.ID}}/settings">Change in Settings</a></p>
+{{end}}
+{{end}}
+{{end}}
+{{template "bottom" .}}

@@ -1,0 +1,125 @@
+{
+  "version": 2,
+  "apps": [
+    {
+      "id": "v-ID",
+      "name": "v-Name",
+      "protocol": "saml",
+      "created": "2026-01-02T03:04:05Z",
+      "metadata_url": "v-MetadataURL",
+      "metadata_xml": "v-MetadataXML",
+      "force_authn": true,
+      "sign_authn": true,
+      "nameid_format": "v-NameIDFormat",
+      "authn_context": [
+        "v-AuthnContext"
+      ],
+      "authn_comparison": "v-AuthnComparison",
+      "is_passive": true,
+      "encrypt_assertions": true,
+      "acr_values": "v-AcrValues",
+      "login_hint": "v-LoginHint",
+      "loaded_at": "0001-01-01T00:00:00Z",
+      "issuer": "v-OIDC.Issuer",
+      "client_id": "v-OIDC.ClientID",
+      "scopes": "v-OIDC.Scopes",
+      "extra_params": "v-OIDC.ExtraParams",
+      "idp_landing": "v-IdPLanding",
+      "logout": true,
+      "login_url": true,
+      "relay_state_on": true,
+      "idp_slo_url": "v-IdPSLOURL",
+      "resource": "v-Resource",
+      "machine_scopes": "v-MachineScopes",
+      "keep_secret": true,
+      "public_client": true,
+      "client_secret": "v-OIDC.ClientSecret",
+      "directory": true,
+      "match_key": "v-MatchKey",
+      "match_attr": "v-MatchAttr",
+      "jit": true,
+      "scim_token": "v-SCIMToken",
+      "users": [
+        {
+          "id": "v-Users.ID",
+          "userName": "v-Users.UserName",
+          "externalId": "v-Users.ExternalID",
+          "emails": [
+            ""
+          ],
+          "givenName": "v-Users.GivenName",
+          "familyName": "v-Users.FamilyName",
+          "displayName": "v-Users.Display",
+          "groups": [
+            ""
+          ],
+          "active": true,
+          "source": "v-Users.Source",
+          "created": "2026-01-02T03:04:05Z",
+          "updated": "2026-01-02T03:04:05Z",
+          "lastSignIn": "2026-01-02T03:04:05Z"
+        }
+      ],
+      "groups": [
+        {
+          "id": "v-Groups.ID",
+          "displayName": "v-Groups.Name",
+          "members": [
+            ""
+          ],
+          "created": "2026-01-02T03:04:05Z",
+          "updated": "2026-01-02T03:04:05Z"
+        }
+      ],
+      "provisioning": [
+        {
+          "time": "2026-01-02T03:04:05Z",
+          "method": "v-ProvLog.Method",
+          "path": "v-ProvLog.Path",
+          "status": 7,
+          "summary": "v-ProvLog.Summary",
+          "request": "v-ProvLog.Request",
+          "response": "v-ProvLog.Response"
+        }
+      ],
+      "sessions": [
+        {
+          "id": "v-Sessions.ID",
+          "result": "v-Sessions.ResultID",
+          "user": "v-Sessions.User",
+          "account": "v-Sessions.Account",
+          "nameId": "v-Sessions.NameID",
+          "sessionIndex": "v-Sessions.SessionIndex",
+          "sub": "v-Sessions.Sub",
+          "sid": "v-Sessions.SID",
+          "via": "v-Sessions.Via",
+          "claimed": true,
+          "started": "2026-01-02T03:04:05Z",
+          "lastSeen": "2026-01-02T03:04:05Z",
+          "expires": "2026-01-02T03:04:05Z",
+          "expiresWhy": "v-Sessions.ExpiresWhy",
+          "ended": "2026-01-02T03:04:05Z",
+          "endedHow": "v-Sessions.EndedHow"
+        }
+      ],
+      "session_minutes": 7,
+      "idle_minutes": 7,
+      "access_rules": [
+        {
+          "role": "v-AccessRules.Role",
+          "source": "v-AccessRules.Source",
+          "name": "v-AccessRules.Name",
+          "values": [
+            "v-AccessRules.Values"
+          ]
+        }
+      ],
+      "expected": [
+        {
+          "name": "v-Expected.Name",
+          "value": "v-Expected.Value"
+        }
+      ]
+    }
+  ]
+}

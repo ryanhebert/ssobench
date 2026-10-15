@@ -1,0 +1,45 @@
+{{define "title"}}Sessions - {{.App.Name}} - SSOBench{{end}}
+{{template "top" .}}
+{{with .App}}{{$a := .}}
+{{template "app-head" $}}
+
+<p class="tab-lede">A session starts when someone signs in through the <a href="/a/{{.ID}}" target="_blank" rel="noopener">sign-in page</a> or from the identity provider, and lasts {{lower (minutesLabel $.Lifetime)}}{{if .IdleMinutes}}, or until {{lower (minutesLabel .IdleMinutes)}} without activity{{end}}. <a class="tab-action" href="/apps/{{.ID}}/settings">Change</a></p>
+
+<section class="section">
+  <h2>Active <span class="count">{{len $.Active}}</span></h2>
+  {{if $.Active}}
+  <ul class="list">{{range $.Active}}
+    <li class="row">
+      <span class="avatar avatar-sm" aria-hidden="true">{{initialsOf .User}}</span>
+      <a class="row-main" href="/result/{{.ResultID}}">
+        <span class="row-title">{{.User}}</span>
+        <span class="row-sub">{{.Source}}, signed in {{ago .Started}}{{with .SID}}, sid {{.}}{{end}}{{with .SessionIndex}}, session index {{.}}{{end}}</span>
+      </a>
+      <span class="row-aside"><span>Active {{ago .LastSeen}}</span><span>Ends {{until .Expires}}{{if eq .ExpiresWhy "idp"}} (IdP limit){{end}}</span></span>
+      <form method="post" action="/apps/{{$a.ID}}/sessions/{{.ID}}/end"><button class="btn btn-secondary btn-sm" type="submit">End<span class="sr"> the session of {{.User}}</span></button></form>
+    </li>{{end}}
+  </ul>
+  {{else}}
+  <p class="muted">No one is signed in. Open the <a href="/a/{{.ID}}" target="_blank" rel="noopener">sign-in page</a> and sign in to start a session. Test sign-in in the console shows diagnostics and starts none.</p>
+  {{end}}
+</section>
+
+{{if $.EndedList}}
+<section class="section">
+  <h2>Ended recently</h2>
+  <ul class="list">{{range $.EndedList}}
+    <li class="row row-ended">
+      <span class="avatar avatar-sm" aria-hidden="true">{{initialsOf .User}}</span>
+      <a class="row-main" href="/result/{{.ResultID}}">
+        <span class="row-title">{{.User}}</span>
+        <span class="row-sub">{{capitalize (endedLabel .EndedHow)}}</span>
+      </a>
+      <span class="row-aside"><span>Ended <time datetime="{{.Ended.UTC.Format "2006-01-02T15:04:05Z"}}" title="{{utc .Ended}}">{{ago .Ended}}</time></span><span>Lasted {{lasted .Started .Ended}}</span></span>
+    </li>{{end}}
+  </ul>
+</section>
+{{end}}
+
+<p class="help">{{if .IsSAML}}Logout requests from the identity provider end the matching sessions, by NameID and session index{{if not .Logout}}, once single logout is on in Settings{{end}}.{{else}}Back-channel logouts from the provider end the matching sessions, by sid or sub{{if not .Logout}}, once single logout is on in Settings{{end}}.{{end}}{{if .Directory}} Deactivating an account ends its sessions.{{end}}</p>
+{{end}}
+{{template "bottom" .}}
