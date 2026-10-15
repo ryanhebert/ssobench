@@ -48,8 +48,11 @@ or Linux. By default it listens only on `localhost`, so tokens stay on your mach
    tar xzf ssobench-*.tar.gz ssobench && ./ssobench
    ```
 
-   On macOS, a file downloaded in a browser is quarantined. Clear that first with
-   `xattr -d com.apple.quarantine ssobench`.
+   On macOS, a file downloaded in a browser is quarantined. Clear that first:
+
+   ```
+   xattr -d com.apple.quarantine ssobench
+   ```
 
 3. Your browser opens SSOBench. Choose **New app** and enter your identity provider's metadata URL
    (for SAML) or its issuer and your client ID (for OpenID Connect). Register the values from the

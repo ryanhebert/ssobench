@@ -15,14 +15,14 @@ the [quick start](../README.md#quick-start).
 
 ## Connecting an app
 
+Add one app in SSOBench for each application you configure at the identity provider. Each app has
+its own SAML entity ID and Assertion Consumer Service (ACS) URL, or OpenID Connect redirect URI, so
+several configurations can be tested side by side.
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="images/setup-dark.png">
   <img alt="An app's Set up tab, listing the URLs to register at the identity provider" src="images/setup-light.png">
 </picture>
-
-Add one app in SSOBench for each application you configure at the identity provider. Each app has
-its own SAML entity ID and Assertion Consumer Service (ACS) URL, or OpenID Connect redirect URI, so
-several configurations can be tested side by side.
 
 ### SAML
 
