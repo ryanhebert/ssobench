@@ -104,7 +104,7 @@ func TestIdPInitiatedAfterRestart(t *testing.T) {
 
 	ts1, c1 := newTestServer(t, statePath)
 	id := createApp(t, c1, ts1.URL, url.Values{"protocol": {"saml"}, "metadata_url": {mdSrv.URL}})
-	if fi, _ := os.Stat(statePath); fi == nil || fi.Mode().Perm()&0o077 != 0 {
+	if fi, _ := os.Stat(statePath); !ownerOnly(fi) {
 		t.Fatalf("state file missing or not owner-only: %v", fi)
 	}
 	mdSrv.Close()

@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -47,7 +48,7 @@ func TestCertIsReused(t *testing.T) {
 	if bytes.Equal(a.Certificate[0], c.Certificate[0]) {
 		t.Error("certificate not renewed for a new host name")
 	}
-	if fi, _ := os.Stat(strings.TrimSuffix(state, ".json") + "-tls-key.pem"); fi == nil || fi.Mode().Perm()&0o077 != 0 {
+	if fi, _ := os.Stat(strings.TrimSuffix(state, ".json") + "-tls-key.pem"); !ownerOnly(fi) {
 		t.Error("TLS key missing or not owner-only")
 	}
 }
@@ -72,4 +73,11 @@ func TestThirdPartyNoticesCoverDependencies(t *testing.T) {
 			t.Errorf("THIRD_PARTY_NOTICES.txt lacks %s %s", f[0], f[1])
 		}
 	}
+}
+
+// ownerOnly reports whether a saved file exists and only its owner can
+// read it. Windows has no Unix modes: files inherit the folder's access
+// list, so only existence is checked there.
+func ownerOnly(fi os.FileInfo) bool {
+	return fi != nil && (runtime.GOOS == "windows" || fi.Mode().Perm()&0o077 == 0)
 }

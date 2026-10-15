@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -207,4 +208,11 @@ func onceKey(make func(string) (*saml.Signer, []byte, []byte, error)) func(strin
 		once.Do(func() { sg, k, c, err = make("SSOBench test") })
 		return sg, k, c, err
 	}
+}
+
+// ownerOnly reports whether a saved file exists and only its owner can
+// read it. Windows has no Unix modes: files inherit the folder's access
+// list, so only existence is checked there.
+func ownerOnly(fi os.FileInfo) bool {
+	return fi != nil && (runtime.GOOS == "windows" || fi.Mode().Perm()&0o077 == 0)
 }

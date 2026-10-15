@@ -128,7 +128,7 @@ func TestHistorySurvivesRestart(t *testing.T) {
 	if _, logPage := get(t, c2, ts2.URL+"/log"); !strings.Contains(logPage, "Payroll") {
 		t.Error("log lost on restart")
 	}
-	if fi, _ := os.Stat(strings.TrimSuffix(statePath, ".json") + "-history.json"); fi == nil || fi.Mode().Perm()&0o077 != 0 {
+	if fi, _ := os.Stat(strings.TrimSuffix(statePath, ".json") + "-history.json"); !ownerOnly(fi) {
 		t.Error("history file missing or not owner-only")
 	}
 	// Replaying the same assertion after a restart is still caught.

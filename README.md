@@ -281,7 +281,9 @@ in place of a production one.
   `-base-url` host and names given with `-allow-host`. A web page elsewhere therefore cannot reach it
   through a DNS name it controls (DNS rebinding).
 - Saved files: the state file holds apps and user directories, and the history file beside it holds
-  full sign-in results and the log. Both are readable only by the account running SSOBench.
+  full sign-in results and the log. On Linux and macOS both are readable only by the account running
+  SSOBench. On Windows they take the permissions of their folder; the default, in the user profile,
+  is private to that account.
 - Client secrets are kept in memory, unless **Keep it across restarts** is checked under the app's
   client secret, in which case the secret is saved in the state file too. A client secret is never
   shown on a page or written to the log.
