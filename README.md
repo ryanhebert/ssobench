@@ -71,7 +71,7 @@ provisions over SCIM, and keeps sessions and roles.
    tar xzf ssobench-linux-*.tar.gz ssobench && ./ssobench
    ```
 
-   If port 8080 is already in use, add `-port 8081` to the command.
+   If port 8080 is busy, SSOBench uses the next free port and says which.
 
 3. Your browser opens SSOBench. Choose **New app** and enter your identity provider's metadata URL
    (for SAML) or its issuer and your client ID (for OpenID Connect). Register the values from the

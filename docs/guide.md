@@ -207,7 +207,7 @@ no key to check them against.
 
 | Flag | What it does |
 |---|---|
-| `-port` | Port to listen on. Default: `8080` |
+| `-port` | Port to listen on. Default: `8080`, or the next free port if 8080 is busy. Set it to keep the same port every time, since the URLs you register include it |
 | `-listen` | Address to listen on. Default: `127.0.0.1:<port>` |
 | `-base-url` | Public URL to put in the registered URLs, for a reverse proxy. Without it, they follow the address in the browser |
 | `-tls` | Serve HTTPS with a generated self-signed certificate |

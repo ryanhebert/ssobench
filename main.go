@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -41,7 +42,7 @@ var version = "dev"
 const usage = `SSOBench tests SAML and OpenID Connect sign-ins against your identity provider.
 
 Usage:
-  ssobench [flags]            start the web UI (default http://localhost:8080)
+  ssobench [flags]            start the web UI (http://localhost:8080, or the next free port)
   ssobench decode [input]     decode a JWT or SAML message (file, value, or - for stdin)
   ssobench version            print the version
 
@@ -74,7 +75,7 @@ func main() {
 func serve(args []string) error {
 	fs := flag.NewFlagSet("ssobench", flag.ContinueOnError)
 	fs.Usage = func() { fmt.Fprint(fs.Output(), usage); fs.PrintDefaults() }
-	port := fs.Int("port", 8080, "port to listen on")
+	port := fs.Int("port", 8080, "port to listen on; if you do not set it and 8080 is busy, the next free port is used")
 	listen := fs.String("listen", "", "address to listen on (default 127.0.0.1:<port>)")
 	baseURL := fs.String("base-url", "", "public URL of this tool, if it differs from the listen address\n(for example behind a reverse proxy)")
 	useTLS := fs.Bool("tls", false, "serve HTTPS with a generated self-signed certificate")
@@ -100,6 +101,14 @@ func serve(args []string) error {
 	addr := *listen
 	if addr == "" {
 		addr = fmt.Sprintf("127.0.0.1:%d", *port)
+	}
+	// Without -port or -listen, a busy default port moves to the next free
+	// one; a port someone asked for is kept, or refused.
+	chosen := false
+	fs.Visit(func(f *flag.Flag) { chosen = chosen || f.Name == "port" || f.Name == "listen" })
+	ln, addr, err := listenOn(addr, !chosen)
+	if err != nil {
+		return err
 	}
 	https := *useTLS || *certFile != ""
 	// The URL to open (and print). Unless -base-url pins it, the URLs SSOBench
@@ -148,10 +157,6 @@ func serve(args []string) error {
 	}
 	if err := srv.LoadHistory(); err != nil {
 		log.Printf("warning: ignoring saved history: %v", err)
-	}
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
 	}
 	hs := &http.Server{Handler: srv.Handler(), ReadHeaderTimeout: 10 * time.Second}
 
@@ -414,4 +419,38 @@ func loopback(addr string) bool {
 	}
 	ip := net.ParseIP(host)
 	return ip != nil && ip.IsLoopback()
+}
+
+// portTries is how many ports listenOn tries, starting with the one asked for.
+const portTries = 20
+
+// listenOn listens on addr. When fallback is set and the port is in use, it
+// tries the next ports up and returns the address it got.
+func listenOn(addr string, fallback bool) (net.Listener, string, error) {
+	ln, err := net.Listen("tcp", addr)
+	if err == nil || !addrInUse(err) {
+		return ln, addr, err
+	}
+	host, p, _ := net.SplitHostPort(addr)
+	port, _ := strconv.Atoi(p)
+	if !fallback || port == 0 {
+		return nil, "", fmt.Errorf("port %s is already in use by another program. Quit it, or choose another port, for example -port %d", p, port+1)
+	}
+	for i := 1; i < portTries; i++ {
+		next := net.JoinHostPort(host, strconv.Itoa(port+i))
+		if ln, err := net.Listen("tcp", next); err == nil {
+			log.Printf("Port %d is in use by another program; using %d instead.", port, port+i)
+			return ln, next, nil
+		} else if !addrInUse(err) {
+			return nil, "", err
+		}
+	}
+	return nil, "", fmt.Errorf("ports %d to %d are all in use. Choose a free one with -port", port, port+portTries-1)
+}
+
+// addrInUse reports a bind failure because the port is taken. Windows
+// reports it as WSAEADDRINUSE (10048), not EADDRINUSE.
+func addrInUse(err error) bool {
+	var errno syscall.Errno
+	return errors.Is(err, syscall.EADDRINUSE) || (runtime.GOOS == "windows" && errors.As(err, &errno) && errno == 10048)
 }

@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"crypto/x509"
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -80,4 +82,31 @@ func TestThirdPartyNoticesCoverDependencies(t *testing.T) {
 // list, so only existence is checked there.
 func ownerOnly(fi os.FileInfo) bool {
 	return fi != nil && (runtime.GOOS == "windows" || fi.Mode().Perm()&0o077 == 0)
+}
+
+// A busy default port moves to the next free one; a port someone chose is
+// refused with a way out.
+func TestListenOnBusyPort(t *testing.T) {
+	busy, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer busy.Close()
+	addr := busy.Addr().String()
+	_, p, _ := net.SplitHostPort(addr)
+	port, _ := strconv.Atoi(p)
+
+	ln, got, err := listenOn(addr, true)
+	if err != nil {
+		t.Fatalf("fallback: %v", err)
+	}
+	ln.Close()
+	_, gp, _ := net.SplitHostPort(got)
+	if n, _ := strconv.Atoi(gp); n <= port || n >= port+portTries {
+		t.Errorf("fallback chose %s, want a port after %d", got, port)
+	}
+
+	if _, _, err := listenOn(addr, false); err == nil || !strings.Contains(err.Error(), "already in use") || !strings.Contains(err.Error(), "-port") {
+		t.Errorf("chosen busy port: %v", err)
+	}
 }
