@@ -156,7 +156,7 @@ func VerifyRedirectSignature(rawQuery string, certs []*x509.Certificate) (presen
 			}
 		}
 	}
-	return true, errors.New("signature does not verify with any certificate in the IdP metadata")
+	return true, errors.New("signature does not verify with any certificate in the identity provider's metadata")
 }
 
 // VerifyEmbeddedSignature checks an enveloped XML signature on the root of a

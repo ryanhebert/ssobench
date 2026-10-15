@@ -8,7 +8,7 @@
 <ul class="choices">
   <li><a class="choice" href="/apps/new?protocol=saml">
     <span class="choice-title">SAML 2.0</span>
-    <span class="choice-sub">The IdP posts a signed assertion to SSOBench. Common for enterprise web apps.</span>
+    <span class="choice-sub">The identity provider posts a signed assertion to SSOBench. Common for enterprise web apps.</span>
   </a></li>
   <li><a class="choice" href="/apps/new?protocol=oidc">
     <span class="choice-title">OpenID Connect</span>
@@ -40,7 +40,7 @@
     <details class="disclosure inline"{{if .Form.MetadataXML}} open{{end}}>
       <summary>{{template "i" "chevron"}}Paste metadata XML instead</summary>
       <div class="field">
-        <label for="metadata_xml" class="sr">IdP metadata XML</label>
+        <label for="metadata_xml" class="sr">Identity provider metadata XML</label>
         <textarea id="metadata_xml" name="metadata_xml" rows="6" spellcheck="false"{{with fieldErr .Errs "metadata_xml"}} aria-invalid="true"{{end}}>{{.Form.MetadataXML}}</textarea>
         {{template "field-error" (fieldErr .Errs "metadata_xml")}}
       </div>

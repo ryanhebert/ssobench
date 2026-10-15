@@ -126,21 +126,21 @@ func (s *Server) loadIdP(ctx context.Context, f *Flow, app *App) (*saml.IdP, err
 		b, err := saml.FetchMetadata(ctx, mdURL)
 		if err != nil {
 			s.event(f, LError, "Metadata", time.Since(t0), "", "GET %s failed: %v", mdURL, err)
-			return nil, fmt.Errorf("could not load the IdP metadata: %w", err)
+			return nil, fmt.Errorf("could not load the identity provider's metadata: %w", err)
 		}
 		md = b
 		s.event(f, LInfo, "Metadata", time.Since(t0), "", "Loaded %s (%d bytes)", mdURL, len(b))
 	}
 	if len(md) == 0 {
-		return nil, fmt.Errorf("enter the IdP metadata URL, or paste the metadata XML")
+		return nil, fmt.Errorf("enter the identity provider's metadata URL, or paste the metadata XML")
 	}
 	idp, err := saml.ParseMetadata(md)
 	if err != nil {
 		s.event(f, LError, "Metadata", 0, "", "Could not read the metadata: %v", err)
-		return nil, fmt.Errorf("IdP metadata: %w", err)
+		return nil, fmt.Errorf("Identity provider metadata: %w", err)
 	}
 	s.event(f, LInfo, "Metadata", 0, metadataDetail(idp),
-		"IdP %s, %d signing %s", idp.EntityID, len(idp.Certs), plural(len(idp.Certs), "certificate", "certificates"))
+		"Identity provider %s, %d signing %s", idp.EntityID, len(idp.Certs), plural(len(idp.Certs), "certificate", "certificates"))
 	s.mu.Lock()
 	changed := !bytes.Equal(app.idpRaw, md)
 	app.idp, app.idpRaw, app.idpLoadedAt = idp, md, time.Now()
@@ -217,7 +217,7 @@ func (s *Server) samlACS(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		f = s.newFlow("SAML", "unreadable response")
 		s.event(f, LError, "Response", 0, "", "POST to the ACS URL without a readable SAMLResponse: %v", err)
-		res.Checks = []check.Result{check.Bad("SAMLResponse", "could not decode: "+err.Error(), "The IdP must POST a base64 SAMLResponse to this URL.")}
+		res.Checks = []check.Result{check.Bad("SAMLResponse", "could not decode: "+err.Error(), "The identity provider must POST a base64 SAMLResponse to this URL.")}
 		return
 	}
 	xmlSec := Section{Group: GroupRaw, Title: "Response XML", Pre: saml.Pretty(raw), Open: true}
@@ -262,13 +262,13 @@ func (s *Server) samlACS(w http.ResponseWriter, r *http.Request) {
 			arrived := sp
 			alt = &arrived
 			c := check.Meh("Sign-in address",
-				fmt.Sprintf("the sign-in started at %s, but the IdP posted the response to %s", pend.sp.ACSURL, sp.ACSURL),
-				"The IdP sends responses to the address registered for the app, not the one you opened, so both are accepted as SSOBench here. To test exactly what the app will see, open SSOBench at "+s.base(r)+" and sign in again.")
+				fmt.Sprintf("the sign-in started at %s, but the identity provider posted the response to %s", pend.sp.ACSURL, sp.ACSURL),
+				"The identity provider sends responses to the address registered for the app, not the one you opened, so both are accepted as SSOBench here. To test exactly what the app will see, open SSOBench at "+s.base(r)+" and sign in again.")
 			addrCheck = &c
 			s.event(f, LWarn, "Response", 0, "", "Started at %s, response arrived at %s", pend.sp.ACSURL, sp.ACSURL)
 		}
 		sp = pend.sp
-		msg := fmt.Sprintf("IdP posted a response to the ACS URL, %s after the request (%d bytes)", humanDur(time.Since(pend.sent)), len(encoded))
+		msg := fmt.Sprintf("The identity provider posted a response to the ACS URL, %s after the request (%d bytes)", humanDur(time.Since(pend.sent)), len(encoded))
 		if relay != "" {
 			msg += fmt.Sprintf(", RelayState %q", relay)
 		}
@@ -279,13 +279,13 @@ func (s *Server) samlACS(w http.ResponseWriter, r *http.Request) {
 			label = "response to an unknown or expired request"
 		}
 		f = s.newFlow("SAML", s.appName(app)+" ("+label+")")
-		s.event(f, LWarn, "Response", 0, "", "IdP posted a response that answers no request from this tool (InResponseTo %q, %d bytes)", inResponseTo, len(encoded))
+		s.event(f, LWarn, "Response", 0, "", "The identity provider posted a response that answers no request from this tool (InResponseTo %q, %d bytes)", inResponseTo, len(encoded))
 	}
 
 	if idp == nil {
-		s.event(f, LError, "Signature", 0, "", "App %q has no IdP metadata loaded, so the signature cannot be checked", s.appName(app))
-		res.Checks = []check.Result{check.Bad("IdP metadata", "this app has no IdP metadata loaded, so the signature cannot be checked",
-			"Save the IdP metadata URL in the app's settings, or open Decode to just read this response.")}
+		s.event(f, LError, "Signature", 0, "", "App %q has no identity provider metadata loaded, so the signature cannot be checked", s.appName(app))
+		res.Checks = []check.Result{check.Bad("Identity provider metadata", "this app has no identity provider metadata loaded, so the signature cannot be checked",
+			"Save the identity provider's metadata URL in the app's settings, or open Decode to just read this response.")}
 		res.All = []Section{xmlSec}
 		return
 	}
@@ -351,8 +351,8 @@ func (s *Server) samlACS(w http.ResponseWriter, r *http.Request) {
 			rep, err = saml.Inspect(raw, expect)
 			if err == nil && !rep.UnknownSigner {
 				rep.Checks = append(rep.Checks, check.Meh("Metadata refresh",
-					"the IdP signed with a certificate missing from the saved metadata; reloading the metadata fixed it",
-					"The IdP rotated its signing certificate. Every SP that pins the old certificate needs the new metadata."))
+					"the identity provider signed with a certificate missing from the saved metadata; reloading the metadata fixed it",
+					"The identity provider rotated its signing certificate. Every SP that pins the old certificate needs the new metadata."))
 			}
 		}
 	}
@@ -443,10 +443,10 @@ func (s *Server) relayCheck(app *App, pend *samlPending, got, want string) []che
 			return []check.Result{check.OK("RelayState", "returned unchanged")}
 		case got == "":
 			return []check.Result{check.Meh("RelayState", "not returned",
-				"The IdP should return the RelayState it receives. Apps that use it for deep links lose the user's place.").Mismatch("", pend.relay)}
+				"The identity provider should return the RelayState it receives. Apps that use it for deep links lose the user's place.").Mismatch("", pend.relay)}
 		}
 		return []check.Result{check.Bad("RelayState", "changed on the way back",
-			"The IdP must return the RelayState it receives, unchanged.").Mismatch(got, pend.relay)}
+			"The identity provider must return the RelayState it receives, unchanged.").Mismatch(got, pend.relay)}
 	}
 	s.mu.Lock()
 	on := app.RelayStateOn
@@ -458,13 +458,13 @@ func (s *Server) relayCheck(app *App, pend *samlPending, got, want string) []che
 		return []check.Result{check.OK("Default relay state", "arrived through the app's deep link")}
 	case on && got == "":
 		return []check.Result{check.Bad("Default relay state", "none received",
-			"Set the default relay state of this application at the IdP to the value under Set up at your identity provider.").Mismatch("", want)}
+			"At the identity provider, set this application's default relay state to the value under Set up.").Mismatch("", want)}
 	case on && gerr == nil && gu.Path == wu.Path && gu.Host != wu.Host:
 		return []check.Result{check.Meh("Default relay state", "the deep link points at another address of SSOBench",
-			"The IdP has the relay state for a different address. If that is the address you use, ignore this; otherwise update it at the IdP.").Mismatch(got, want)}
+			"The identity provider has the relay state for a different address. If that is the address you use, ignore this; otherwise update it at the identity provider.").Mismatch(got, want)}
 	case on:
 		return []check.Result{check.Bad("Default relay state", "not the value SSOBench gave this app",
-			"Set the default relay state of this application at the IdP to exactly the value under Set up at your identity provider"+nearMissText(got, want)+".").Mismatch(got, want)}
+			"At the identity provider, set this application's default relay state to exactly the value under Set up"+nearMissText(got, want)+".").Mismatch(got, want)}
 	case got != "":
 		return []check.Result{check.Note("RelayState", fmt.Sprintf("%q (turn on Default relay state in the app's settings to check it)", got))}
 	}
@@ -511,7 +511,7 @@ func attributesSection(a *saml.Assertion, verified bool) Section {
 		sec.Rows = append(sec.Rows, row)
 	}
 	if len(sec.Rows) == 0 {
-		sec.Note = strings.TrimSpace(sec.Note + " The assertion has no attributes. Add attribute mappings at the IdP to release some.")
+		sec.Note = strings.TrimSpace(sec.Note + " The assertion has no attributes. Add attribute mappings at the identity provider to release some.")
 	}
 	return sec
 }

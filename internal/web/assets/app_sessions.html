@@ -15,7 +15,7 @@
         <span class="row-title">{{.User}}</span>
         <span class="row-sub">{{.Source}}, signed in {{ago .Started}}{{with .SID}}, sid {{.}}{{end}}{{with .SessionIndex}}, session index {{.}}{{end}}</span>
       </a>
-      <span class="row-aside"><span>Active {{ago .LastSeen}}</span><span>Ends {{until .Expires}}{{if eq .ExpiresWhy "idp"}} (IdP limit){{end}}</span></span>
+      <span class="row-aside"><span>Active {{ago .LastSeen}}</span><span>Ends {{until .Expires}}{{if eq .ExpiresWhy "idp"}} (identity provider limit){{end}}</span></span>
       <form method="post" action="/apps/{{$a.ID}}/sessions/{{.ID}}/end"><button class="btn btn-secondary btn-sm" type="submit">End<span class="sr"> the session of {{.User}}</span></button></form>
     </li>{{end}}
   </ul>

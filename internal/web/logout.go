@@ -90,7 +90,7 @@ func (s *Server) signOut(w http.ResponseWriter, r *http.Request, via string) {
 		dest, binding, _ := app.IdPLogoutURL()
 		s.mu.Unlock()
 		if dest == "" {
-			s.event(f, LWarn, "Sign-out", 0, "", "No IdP single logout URL (none in the metadata or the app's settings); signed out of SSOBench only")
+			s.event(f, LWarn, "Sign-out", 0, "", "No single logout URL for the identity provider (none in the metadata or the app's settings); signed out of SSOBench only")
 			s.finish(f, "", "signed out locally")
 			s.signedOut(w, r, app, via, f, SignedOut{Local: true, Reason: "No single logout URL is known for the identity provider, so it was not told. Add it in the app's settings."})
 			return
@@ -261,7 +261,7 @@ func (s *Server) samlSLO(w http.ResponseWriter, r *http.Request) {
 	}
 	switch {
 	case idp == nil:
-		s.event(f, LWarn, "Signature", 0, "", "No IdP metadata is loaded, so the %s signature can't be checked", m.XMLName.Local)
+		s.event(f, LWarn, "Signature", 0, "", "No identity provider metadata is loaded, so the %s signature can't be checked", m.XMLName.Local)
 	case !sigPresent:
 		s.event(f, LWarn, "Signature", 0, "", "The %s is not signed", m.XMLName.Local)
 	case sigErr != nil:
@@ -281,7 +281,7 @@ func (s *Server) samlSLO(w http.ResponseWriter, r *http.Request) {
 		problem = "its signature is invalid"
 	}
 	if idp != nil && m.Issuer != "" && m.Issuer != idp.EntityID {
-		s.event(f, LError, "Issuer", 0, "", "The %s is from %q, not the IdP in the metadata (%q)", m.XMLName.Local, m.Issuer, idp.EntityID)
+		s.event(f, LError, "Issuer", 0, "", "The %s is from %q, not the identity provider in the metadata (%q)", m.XMLName.Local, m.Issuer, idp.EntityID)
 		problem = "it came from another issuer"
 	}
 	if want := s.sloURL(r, app); m.Destination != "" && m.Destination != want {
@@ -318,7 +318,7 @@ func (s *Server) samlSLO(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// A sign-out the IdP started: confirm it.
-	s.event(f, LInfo, "LogoutRequest", 0, saml.Pretty(raw), "The IdP asked to end the session of NameID %q", m.NameID.Value)
+	s.event(f, LInfo, "LogoutRequest", 0, saml.Pretty(raw), "The identity provider asked to end the session of NameID %q", m.NameID.Value)
 	if problem != "" {
 		s.event(f, LError, "LogoutRequest", 0, "", "Ignored: %s", problem)
 		s.finish(f, "", "refused a logout request: "+problem)
@@ -339,14 +339,14 @@ func (s *Server) samlSLO(w http.ResponseWriter, r *http.Request) {
 	dest, binding, _ := app.IdPLogoutURL()
 	s.mu.Unlock()
 	if dest == "" {
-		s.event(f, LWarn, "LogoutResponse", 0, "", "No IdP single logout URL to answer to (none in the metadata or the app's settings)")
+		s.event(f, LWarn, "LogoutResponse", 0, "", "No single logout URL for the identity provider to answer to (none in the metadata or the app's settings)")
 		s.finish(f, "", "signed out; no answer sent")
 		s.signedOut(w, r, app, ViaPage, f, SignedOut{Local: true, Reason: "No single logout URL is known for the identity provider to answer to."})
 		return
 	}
 	resp := saml.LogoutResponse(s.spFor(r, app), saml.NewRequestID(), m.ID, dest, time.Now())
 	s.event(f, LInfo, "LogoutResponse", 0, saml.Pretty(resp), "Answering %s with Success (%s binding)", dest, binding)
-	s.finish(f, "", "signed out at the IdP's request")
+	s.finish(f, "", "signed out at the identity provider's request")
 	relay := r.Form.Get("RelayState")
 	if err := s.sendSAML(w, r, app, f, samlOut{dest: dest, binding: binding, param: "SAMLResponse", msg: resp, relay: relay, sign: true, plain: true}); err != nil {
 		s.event(f, LError, "LogoutResponse", 0, "", "%v", err)

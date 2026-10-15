@@ -148,7 +148,7 @@ func (s *Server) oauthCallback(w http.ResponseWriter, r *http.Request) {
 		case err == nil && tok.AccessToken != "":
 			s.event(f, LError, "Token exchange", 0, shortenTokens(tok.Raw), "Tokens issued without PKCE")
 			res.Checks = append(res.Checks, check.Bad("PKCE required", "the server issued a code and redeemed it without any PKCE",
-				"OAuth 2.1 requires PKCE for every authorization code. Turn on PKCE enforcement for this client at the IdP."))
+				"OAuth 2.1 requires PKCE for every authorization code. Turn on PKCE enforcement for this client at the identity provider."))
 		case !refused(tok, status, err):
 			s.event(f, LError, "Token exchange", 0, string(tokRaw(tok)), "No usable answer (HTTP %d): %v", status, err)
 			res.Checks = append(res.Checks, couldNotTell("PKCE required", status, err))
@@ -320,7 +320,7 @@ func (s *Server) analyzeTokens(ctx context.Context, f *Flow, res *Result, app *A
 		default:
 			s.event(f, LError, "Introspection", time.Since(t2), indent(body), "Token reported inactive")
 			res.Checks = append(res.Checks, check.Bad("Introspection", "the server reports its own fresh token as inactive",
-				"APIs that introspect would reject this token. Check the token and introspection settings at the IdP."))
+				"APIs that introspect would reject this token. Check the token and introspection settings at the identity provider."))
 			res.All = append(res.All, Section{Group: GroupDetail, Title: "Introspection response", Pre: indent(body)})
 		}
 	}
@@ -370,7 +370,7 @@ func (s *Server) refreshChecks(ctx context.Context, f *Flow, res *Result, cfg oi
 	case next.RefreshToken == "" || next.RefreshToken == tok.RefreshToken:
 		if public {
 			res.Checks = append(res.Checks, check.Bad("Refresh token rotation", "the same refresh token stays valid after use",
-				"OAuth 2.1 requires public clients' refresh tokens to rotate, or be bound to the client. Turn on rotation at the IdP."))
+				"OAuth 2.1 requires public clients' refresh tokens to rotate, or be bound to the client. Turn on rotation at the identity provider."))
 		} else {
 			res.Checks = append(res.Checks, check.Note("Refresh token rotation", "not rotated; allowed for confidential clients, required for public ones"))
 		}
@@ -422,7 +422,7 @@ func (s *Server) oauthMachine(w http.ResponseWriter, r *http.Request) {
 	tok, _, err := oidc.ClientCredentials(ctx, cfg, p, scopes, resource)
 	if err != nil {
 		s.event(f, LError, "Client credentials", time.Since(t0), string(tokRaw(tok)), "%v", err)
-		fix := "Turn on the client credentials grant for this client at the IdP, and allow the requested scopes."
+		fix := "Turn on the client credentials grant for this client at the identity provider, and allow the requested scopes."
 		if e := oidc.OAuthError(tokRaw(tok)); e == "invalid_client" {
 			fix = "The client ID or secret is wrong."
 		}
@@ -540,7 +540,7 @@ func (s *Server) oauthConformance(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	probe("PKCE required", oidc.AuthOptions{NoPKCE: true, Resource: resource}, "refused an authorize request without PKCE", "the server issued a code without a code challenge",
-		"OAuth 2.1 requires PKCE. Turn on PKCE enforcement for this client at the IdP.")
+		"OAuth 2.1 requires PKCE. Turn on PKCE enforcement for this client at the identity provider.")
 	probe("Plain PKCE refused", oidc.AuthOptions{Method: "plain", Resource: resource}, "refused code_challenge_method=plain", "the server accepted code_challenge_method=plain",
 		"OAuth 2.1 forbids plain. Accept only S256.")
 	probe("Implicit flow removed", oidc.AuthOptions{ResponseType: "token", Resource: resource}, "refused response_type=token", "the server returned a token for response_type=token",

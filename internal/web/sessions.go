@@ -191,7 +191,7 @@ func (s *Server) sessionViews(app *App) (active, ended []SessionView) {
 	for i := len(app.Sessions) - 1; i >= 0; i-- {
 		x := app.Sessions[i]
 		checkSessionLocked(app, x, now)
-		v := SessionView{Session: *x, Source: map[string]string{ViaPage: "Sign-in page", ViaIdP: "Started at the IdP"}[x.Via]}
+		v := SessionView{Session: *x, Source: map[string]string{ViaPage: "Sign-in page", ViaIdP: "Started at the identity provider"}[x.Via]}
 		if x.Active() {
 			active = append(active, v)
 		} else {

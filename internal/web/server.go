@@ -642,7 +642,7 @@ func friendlyLoadError(rawURL string, err error) FieldError {
 	case strings.Contains(raw, "HTTP "):
 		fe.Msg = "The server answered with an error (" + raw[strings.Index(raw, "HTTP "):min(len(raw), strings.Index(raw, "HTTP ")+8)] + ")."
 	case strings.Contains(raw, "not valid XML"), strings.Contains(raw, "no EntityDescriptor"), strings.Contains(raw, "IDPSSODescriptor"):
-		fe.Msg = "That isn't identity provider metadata. " + capitalize(strings.TrimPrefix(strings.TrimPrefix(raw, "IdP metadata: "), "metadata ")) + "."
+		fe.Msg = "That isn't identity provider metadata. " + capitalize(strings.TrimPrefix(strings.TrimPrefix(raw, "Identity provider metadata: "), "metadata ")) + "."
 	case strings.Contains(raw, "discovery document"):
 		fe.Msg = "That URL doesn't serve a valid OpenID Connect discovery document."
 	default:

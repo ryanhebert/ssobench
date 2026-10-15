@@ -270,10 +270,10 @@ func CheckIDToken(j *JWT, e Expect, accessToken string) []check.Result {
 	switch {
 	case alg == "" || alg == "none":
 		rs = append(rs, check.Bad("Signature", "token is unsigned (alg=none)",
-			"Never accept unsigned ID tokens. Configure the IdP to sign with RS256 or ES256."))
+			"Never accept unsigned ID tokens. Configure the identity provider to sign with RS256 or ES256."))
 	case strings.HasPrefix(alg, "HS") && e.Config.ClientSecret == "":
 		rs = append(rs, check.Bad("Signature", alg+": signed with a shared secret, and this client has none",
-			"Without a client secret the token cannot be verified, so it must not be trusted. Enter the client secret, or have the IdP sign ID tokens with RS256 or ES256."))
+			"Without a client secret the token cannot be verified, so it must not be trusted. Enter the client secret, or have the identity provider sign ID tokens with RS256 or ES256."))
 	case strings.HasPrefix(alg, "HS"):
 		if err := j.Verify(nil, []byte(e.Config.ClientSecret)); err != nil {
 			rs = append(rs, check.Bad("Signature", alg+": "+err.Error(),
@@ -335,7 +335,7 @@ func CheckIDToken(j *JWT, e Expect, accessToken string) []check.Result {
 		skew := iat.Sub(now).Round(time.Second)
 		if skew > e.Skew {
 			rs = append(rs, check.Bad("Issued at (iat)", fmt.Sprintf("%s, %s ahead of this machine", check.When(iat, now), skew),
-				"Clock skew between this machine and the IdP. Sync both with NTP."))
+				"Clock skew between this machine and the identity provider. Sync both with NTP."))
 		} else {
 			rs = append(rs, check.OK("Issued at (iat)", check.When(iat, now)))
 		}
@@ -349,7 +349,7 @@ func CheckIDToken(j *JWT, e Expect, accessToken string) []check.Result {
 	case nonce == e.Nonce:
 		rs = append(rs, check.OK("Nonce", "matches the request"))
 	case nonce == "":
-		rs = append(rs, check.Bad("Nonce", "missing from the token", "The IdP dropped the nonce. This allows token replay."))
+		rs = append(rs, check.Bad("Nonce", "missing from the token", "The identity provider dropped the nonce. This allows token replay."))
 	default:
 		rs = append(rs, check.Bad("Nonce", "does not match the request", "Possible replay, or the login was started in another tab."))
 	}
@@ -359,7 +359,7 @@ func CheckIDToken(j *JWT, e Expect, accessToken string) []check.Result {
 			rs = append(rs, check.OK("Access token hash (at_hash)", "matches the access token"))
 		} else {
 			rs = append(rs, check.Bad("Access token hash (at_hash)", "does not match the access token",
-				"The access token was swapped or the IdP computed at_hash with the wrong hash."))
+				"The access token was swapped or the identity provider computed at_hash with the wrong hash."))
 		}
 	}
 

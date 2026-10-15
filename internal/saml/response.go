@@ -180,7 +180,7 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 		if resp.Status.Message != "" {
 			detail += ": " + resp.Status.Message
 		}
-		fix := "The IdP refused the login. Check the IdP's event log for the reason."
+		fix := "The identity provider refused the login. Check the identity provider's event log for the reason."
 		if code.Sub != nil {
 			if f, ok := statusFixes[short(code.Sub.Value)]; ok {
 				fix = f
@@ -208,7 +208,7 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 	}
 	if len(assertEls) == 0 {
 		if code.Value == statusSuccess {
-			add(check.Bad("Assertion", "the response contains no readable assertion", "The IdP sent Success without an assertion."))
+			add(check.Bad("Assertion", "the response contains no readable assertion", "The identity provider sent Success without an assertion."))
 		}
 		return rep, nil
 	}
@@ -286,7 +286,7 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 	for _, s := range []sigInfo{respSig, asrtSig} {
 		if s.Present && (strings.Contains(s.SigAlg, "sha1") || strings.Contains(s.DigestAlg, "sha1")) {
 			add(check.Meh("Algorithms", fmt.Sprintf("SHA-1 in use (signature %s, digest %s)", short(s.SigAlg), short(s.DigestAlg)),
-				"SHA-1 is deprecated and rejected by many SPs. Switch the relying party to SHA-256 at the IdP."))
+				"SHA-1 is deprecated and rejected by many SPs. Switch the relying party to SHA-256 at the identity provider."))
 			break
 		}
 	}
@@ -298,7 +298,7 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 		switch {
 		case now.After(signer.NotAfter):
 			add(check.Meh("Signing certificate", "expired "+check.When(signer.NotAfter, now),
-				"The signature itself is valid, but many SPs reject expired certificates. Renew the IdP token-signing certificate and update SP metadata."))
+				"The signature itself is valid, but many SPs reject expired certificates. Renew the identity provider's token-signing certificate and update SP metadata."))
 		case signer.NotAfter.Sub(now) < 30*24*time.Hour:
 			add(check.Meh("Signing certificate", "expires "+check.When(signer.NotAfter, now),
 				"Plan the certificate rollover and update every SP that pins this certificate."))
@@ -311,13 +311,13 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 		add(check.OK("Issuer", trusted.Issuer))
 	} else {
 		add(check.Bad("Issuer", "the assertion comes from a different identity provider than the metadata",
-			"The assertion came from a different IdP than the metadata you loaded"+nearMiss(trusted.Issuer, e.IdP.EntityID)+".").Mismatch(trusted.Issuer, e.IdP.EntityID))
+			"The assertion came from a different identity provider than the metadata you loaded"+nearMiss(trusted.Issuer, e.IdP.EntityID)+".").Mismatch(trusted.Issuer, e.IdP.EntityID))
 	}
 
 	switch {
 	case resp.Destination == "" && respSig.Present:
 		add(check.Bad("Destination", "not set on a signed response",
-			"A signed response must say where it is going (SAML bindings, section 3.5.5.2), so it can't be posted to another service provider. Configure the IdP to include Destination."))
+			"A signed response must say where it is going (SAML bindings, section 3.5.5.2), so it can't be posted to another service provider. Configure the identity provider to include Destination."))
 	case resp.Destination == "":
 		add(check.Note("Destination", "not set (allowed because the response itself is unsigned)"))
 	case resp.Destination == e.SP.ACSURL:
@@ -326,7 +326,7 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 		add(check.OK("Destination", resp.Destination+" (the address the response arrived at)"))
 	default:
 		add(check.Bad("Destination", "the response was addressed to a different ACS URL",
-			"Set the ACS URL at the IdP to exactly this app's ACS URL"+nearMiss(resp.Destination, e.SP.ACSURL)+".").Mismatch(resp.Destination, e.SP.ACSURL))
+			"Set the ACS URL at the identity provider to exactly this app's ACS URL"+nearMiss(resp.Destination, e.SP.ACSURL)+".").Mismatch(resp.Destination, e.SP.ACSURL))
 	}
 
 	switch {
@@ -345,7 +345,7 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 	} else {
 		if len(c.Audiences) == 0 {
 			add(check.Meh("Audience", "no audience restriction, so any service provider would accept this assertion",
-				"Configure the IdP to restrict the assertion to this app's entity ID ("+e.SP.EntityID+")."))
+				"Configure the identity provider to restrict the assertion to this app's entity ID ("+e.SP.EntityID+")."))
 		} else if slices.Contains(c.Audiences, e.SP.EntityID) {
 			add(check.OK("Audience", e.SP.EntityID))
 		} else if e.Alt != nil && slices.Contains(c.Audiences, e.Alt.EntityID) {
@@ -356,7 +356,7 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 				hint += nearMiss(a, e.SP.EntityID)
 			}
 			add(check.Bad("Audience", "the assertion is for a different service provider",
-				"Set the entity ID (audience) at the IdP to exactly this app's entity ID"+hint+".").Mismatch(strings.Join(c.Audiences, "\n"), e.SP.EntityID))
+				"Set the entity ID (audience) at the identity provider to exactly this app's entity ID"+hint+".").Mismatch(strings.Join(c.Audiences, "\n"), e.SP.EntityID))
 		}
 		add(check.Window("Conditions lifetime", parseTime(c.NotBefore), parseTime(c.NotOnOrAfter), now, e.Skew))
 	}
@@ -365,7 +365,7 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 		switch {
 		case skew > e.Skew:
 			add(check.Bad("Clock skew", fmt.Sprintf("assertion issued %s ahead of this machine", check.Human(skew)),
-				"Sync this machine and the IdP with NTP."))
+				"Sync this machine and the identity provider with NTP."))
 		case -skew > 5*time.Minute:
 			add(check.Meh("Issue instant", "issued "+check.When(t, now),
 				"Assertions are normally used seconds after they are issued. An old one means clock skew, or a response that was saved and posted again."))
@@ -383,17 +383,17 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 		d := sc.Data
 		if d.Recipient != e.SP.ACSURL && (e.Alt == nil || d.Recipient != e.Alt.ACSURL) {
 			add(check.Bad("Recipient", "the subject confirmation names a different ACS URL",
-				"Set the ACS URL at the IdP to exactly this app's ACS URL"+nearMiss(d.Recipient, e.SP.ACSURL)+".").Mismatch(d.Recipient, e.SP.ACSURL))
+				"Set the ACS URL at the identity provider to exactly this app's ACS URL"+nearMiss(d.Recipient, e.SP.ACSURL)+".").Mismatch(d.Recipient, e.SP.ACSURL))
 		} else {
 			add(check.OK("Recipient", d.Recipient))
 		}
 		add(check.Window("Subject confirmation lifetime", parseTime(d.NotBefore), parseTime(d.NotOnOrAfter), now, e.Skew))
 		if d.NotBefore != "" {
 			add(check.Meh("Subject confirmation NotBefore", "set, which the Web SSO profile forbids for bearer confirmations",
-				"Some service providers reject the assertion. Remove NotBefore from SubjectConfirmationData at the IdP; the Conditions element already limits when the assertion is valid."))
+				"Some service providers reject the assertion. Remove NotBefore from SubjectConfirmationData at the identity provider; the Conditions element already limits when the assertion is valid."))
 		}
 		if d.Address != "" {
-			add(check.Note("Subject address", d.Address+" (the address the IdP saw; behind NAT or a proxy it differs from the one SSOBench sees)"))
+			add(check.Note("Subject address", d.Address+" (the address the identity provider saw; behind NAT or a proxy it differs from the one SSOBench sees)"))
 		}
 		if d.InResponseTo != resp.InResponseTo {
 			add(check.Bad("Subject InResponseTo", fmt.Sprintf("%q differs from the response's %q", d.InResponseTo, resp.InResponseTo),
@@ -406,7 +406,7 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 	}
 
 	if trusted.Subject.NameID.Value == "" {
-		add(check.Meh("NameID", "empty", "Most SPs key users on NameID. Configure a NameID claim rule at the IdP."))
+		add(check.Meh("NameID", "empty", "Most SPs key users on NameID. Configure a NameID claim rule at the identity provider."))
 	} else {
 		add(check.OK("NameID", trusted.Subject.NameID.Value+" ("+short(trusted.Subject.NameID.Format)+")"))
 	}
@@ -418,12 +418,12 @@ func Inspect(raw []byte, e Expect) (*Report, error) {
 }
 
 var statusFixes = map[string]string{
-	"InvalidNameIDPolicy": "The IdP cannot produce the NameID format requested. Add a NameID claim rule at the IdP.",
-	"RequestDenied":       "The IdP denied the request. Check access-control policy for this relying party.",
-	"AuthnFailed":         "The user failed authentication at the IdP.",
-	"NoPassive":           "Passive login was requested but the user has no session at the IdP.",
-	"RequestUnsupported":  "The IdP does not support something in the request. Check the IdP log.",
-	"UnknownPrincipal":    "The IdP does not know this user.",
+	"InvalidNameIDPolicy": "The identity provider cannot produce the NameID format requested. Add a NameID claim rule at the identity provider.",
+	"RequestDenied":       "The identity provider denied the request. Check access-control policy for this relying party.",
+	"AuthnFailed":         "The user failed authentication at the identity provider.",
+	"NoPassive":           "Passive login was requested but the user has no session at the identity provider.",
+	"RequestUnsupported":  "The identity provider does not support something in the request. Check its log.",
+	"UnknownPrincipal":    "The identity provider does not know this user.",
 }
 
 type sigInfo struct {
@@ -482,10 +482,10 @@ func sigFailure(where string, s sigInfo, certs []*x509.Certificate) check.Result
 		return check.Bad(where+" signature",
 			fmt.Sprintf("signed with a certificate that is not in the metadata: %s. Metadata has: %s",
 				Thumbprints(s.KeyInfoCert), strings.Join(have, "; ")),
-			"The IdP rolled over its token-signing certificate. Reload the IdP metadata (or update the pinned certificate).")
+			"The identity provider rolled over its token-signing certificate. Reload the identity provider's metadata (or update the pinned certificate).")
 	}
 	return check.Bad(where+" signature", "invalid: "+s.Err.Error(),
-		"The signed content was modified after signing (a proxy or the IdP re-encoding it), or the wrong certificate is configured.")
+		"The signed content was modified after signing (a proxy or the identity provider re-encoding it), or the wrong certificate is configured.")
 }
 
 // detach copies el and re-declares every namespace it inherits from its

@@ -126,7 +126,7 @@ func (s *Server) accountCheck(app *App, res *Result) bool {
 			"Provision the user to this app (SCIM), add them under Users, or turn on just-in-time accounts.")
 		if near := closestUser(app.Users, v); near != nil {
 			c = c.Mismatch(v, firstNonEmpty(near.PrimaryEmail(), near.UserName))
-			c.Fix = "An account with a similar identifier exists. The identity provider sends one value and the account has another; change the " + from + " the IdP sends, or this app's matching key."
+			c.Fix = "An account with a similar identifier exists. The identity provider sends one value and the account has another; change the " + from + " the identity provider sends, or this app's matching key."
 		}
 		res.Checks = append(res.Checks, c)
 		res.AccountProblem = "notfound"

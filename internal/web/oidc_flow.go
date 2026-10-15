@@ -92,7 +92,7 @@ func (s *Server) oidcCallback(w http.ResponseWriter, r *http.Request) {
 	cfg, p := pend.cfg, pend.provider
 	res.AppID, res.AppName, res.Via, app = pend.app.ID, s.appName(pend.app), pend.via, pend.app
 	if q.Get("error") == "" {
-		s.event(f, LInfo, "Callback", 0, rowsText(params.Rows), "Browser returned from the IdP, %s after the request", humanDur(time.Since(pend.started)))
+		s.event(f, LInfo, "Callback", 0, rowsText(params.Rows), "Browser returned from the identity provider, %s after the request", humanDur(time.Since(pend.started)))
 	}
 	res.Title, res.Issuer = cfg.Issuer, cfg.Issuer
 	res.Checks = append(res.Checks, check.OK("State", "matches the request"))
@@ -221,9 +221,9 @@ func oauthFix(code string) string {
 	case "access_denied":
 		return "The user cancelled, or isn't allowed to use this application. If they should be, assign the user (or a group they're in) to the application at your identity provider, then test again."
 	case "invalid_request":
-		return "Often a redirect URI that is not registered for this client. Register the redirect URI shown under Set up at your IdP on the app's page, exactly."
+		return "Often a redirect URI that is not registered for this client. At your identity provider, register exactly the redirect URI shown under Set up on the app's page."
 	}
-	return "Read the error description above, and the IdP's sign-in log."
+	return "Read the error description above, and the identity provider's sign-in log."
 }
 
 func tokenFix(msg string) string {

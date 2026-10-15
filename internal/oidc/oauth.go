@@ -305,7 +305,7 @@ func CheckAccessToken(j *JWT, e ExpectAT) []check.Result {
 		rs = append(rs, check.OK("Access token audience", e.Resource))
 	case e.Resource != "":
 		rs = append(rs, check.Bad("Access token audience", "the token is not for the requested resource",
-			"An API accepts only tokens whose aud names it. Check the resource (API) configured for this client at the IdP.").Mismatch(strings.Join(auds, "\n"), e.Resource))
+			"An API accepts only tokens whose aud names it. Check the resource (API) configured for this client at the identity provider.").Mismatch(strings.Join(auds, "\n"), e.Resource))
 	case len(auds) == 0:
 		rs = append(rs, check.Meh("Access token audience", "the token has no aud claim", "Without an audience, any API that trusts this server would accept the token."))
 	case slices.Contains(auds, e.ClientID):
@@ -350,7 +350,7 @@ func CheckAccessToken(j *JWT, e ExpectAT) []check.Result {
 		}
 		if len(missing) > 0 {
 			rs = append(rs, check.Meh("Scopes in the token", fmt.Sprintf("granted %s; not granted: %s", strings.Join(granted, " "), strings.Join(missing, " ")),
-				"The IdP granted fewer scopes than requested, often because of a group-based scope policy. Check the scopes allowed for this client and user."))
+				"The identity provider granted fewer scopes than requested, often because of a group-based scope policy. Check the scopes allowed for this client and user."))
 		} else {
 			rs = append(rs, check.OK("Scopes in the token", strings.Join(granted, " ")))
 		}

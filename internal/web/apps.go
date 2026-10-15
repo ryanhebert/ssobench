@@ -418,9 +418,9 @@ func (a *App) IdPLogoutURL() (dest, binding, source string) {
 	case a.IdPSLOURL != "":
 		return a.IdPSLOURL, "HTTP-Redirect", "entered in this app's settings"
 	case a.idp != nil && a.idp.SLORedirect != "":
-		return a.idp.SLORedirect, "HTTP-Redirect", "from the IdP metadata"
+		return a.idp.SLORedirect, "HTTP-Redirect", "from the identity provider's metadata"
 	case a.idp != nil && a.idp.SLOPost != "":
-		return a.idp.SLOPost, "HTTP-POST", "from the IdP metadata"
+		return a.idp.SLOPost, "HTTP-POST", "from the identity provider's metadata"
 	}
 	return "", "", ""
 }

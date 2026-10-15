@@ -300,7 +300,7 @@ func (r *Result) Source() string {
 	case r.Via == ViaPage:
 		return "Sign-in page"
 	case r.Via == ViaIdP:
-		return "Started at the IdP"
+		return "Started at the identity provider"
 	}
 	return "Console"
 }

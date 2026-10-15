@@ -25,7 +25,7 @@ func TestSmallerPaths(t *testing.T) {
 	id := createApp(t, c, ts.URL, url.Values{"protocol": {"saml"}, "name": {"Payroll"}, "metadata_url": {md.URL}})
 	md.Close()
 	resp, _ := c.PostForm(ts.URL+"/apps/"+id+"/signin", nil)
-	if body := readBody(resp); resp.StatusCode != http.StatusBadRequest || !strings.Contains(body, "could not load the IdP metadata") && !strings.Contains(body, "Could not load the IdP metadata") {
+	if body := readBody(resp); resp.StatusCode != http.StatusBadRequest || !strings.Contains(body, "Could not load the identity provider&#39;s metadata") {
 		t.Errorf("sign-in with unreachable metadata: %d\n%s", resp.StatusCode, mainOf(body))
 	}
 

@@ -76,7 +76,7 @@ func SAML(s string) (*Result, error) {
 	}
 	r.Parts = append(r.Parts, Part{Title: "XML", Body: saml.Pretty(x)})
 	if bytes.Contains(x, []byte("SignatureValue")) {
-		r.Parts = append(r.Parts, Part{Title: "Signature", Body: "Present. Not verified: decode has no IdP certificate."})
+		r.Parts = append(r.Parts, Part{Title: "Signature", Body: "Present. Not verified: decode has no identity provider certificate."})
 	}
 	return r, nil
 }
