@@ -217,7 +217,7 @@ func (s *Server) userAdd(w http.ResponseWriter, r *http.Request) {
 }
 
 // userImport adds or updates users from CSV: userName,email,givenName,
-// familyName,active. A header row is recognised and skipped.
+// familyName,active. A header row is recognized and skipped.
 func (s *Server) userImport(w http.ResponseWriter, r *http.Request) {
 	app := s.directoryApp(w, r)
 	if app == nil {

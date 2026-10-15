@@ -301,6 +301,6 @@ func TestNewAppAsksForProtocol(t *testing.T) {
 		}
 	}
 	if _, home := get(t, c, ts.URL+"/"); !strings.Contains(home, `href="/apps/new"`) || strings.Contains(home, "New SAML app") {
-		t.Error("empty state still favours one protocol")
+		t.Error("empty state still favors one protocol")
 	}
 }

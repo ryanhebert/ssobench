@@ -1,6 +1,6 @@
 # Contributing
 
-Bug reports, notes on how a particular identity provider behaves, and pull requests are all welcome.
+Bug reports and pull requests are welcome.
 
 ## Reporting a problem
 

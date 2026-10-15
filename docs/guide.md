@@ -248,14 +248,14 @@ On Windows, use a service wrapper such as [WinSW](https://github.com/winsw/winsw
 
 ## Design decisions
 
-- It runs on your machine. SSOBench listens on `localhost` by default, so tokens from a real tenant
+- Local by default. SSOBench listens on `localhost` by default, so tokens from a real tenant
   never pass through someone else's server. To test with other people, you run it on a server of
   your own.
-- It trusts only signed content. Checks read the assertion or token the signature covers, never the
-  document around it, and unverified content is labelled as such.
-- It has two dependencies. Everything else is written on the standard library so each check can
-  explain what it found. The cost is verification code that has to be tested hard, which is why it
-  is fuzz-tested.
+- Only signed content is trusted. Checks read the assertion or token the signature covers, never the
+  document around it, and unverified content is labeled as such.
+- Two direct dependencies. Everything else is written on the standard library so each check can
+  explain what it found. The cost is verification code that has to be tested hard, which is why the
+  JWT and passkey verifiers are fuzz-tested.
 - It plays the application, not the identity provider. Testing an application without a real
   identity provider is out of scope for now.
 
@@ -276,9 +276,13 @@ in place of a production one.
   - For unattended setups, a password can also be given at start with `-admin-password-file` or the
     `SSOBENCH_ADMIN_PASSWORD` environment variable.
   - If you are locked out, start SSOBench once with `-reset-console-sign-in`.
-- Signatures: SAML checks run only on the content the signature covers, the standard defence against
-  signature wrapping, and tests cover the known wrapping shapes. A response that fails to decrypt
-  gives the same message whatever the cause, so SSOBench cannot be used to probe the encryption key.
+- Signatures: SAML checks run only on the content the signature covers, the standard defense against
+  signature wrapping. Tests replay the signature-wrapping shapes from Somorovsky et al., "On Breaking
+  SAML" (2012), at both the assertion and the response level, and the comment-truncation bug
+  (CVE-2017-11427).
+- Decryption: a response that fails to decrypt gives the same message whatever the cause, so its
+  error messages are not a padding or Bleichenbacher oracle. AES-CBC and RSA PKCS#1 v1.5 are still
+  flagged as weak.
 - Host names: SSOBench answers only to IP addresses, `localhost`, this machine's names, the
   `-base-url` host and names given with `-allow-host`. A web page elsewhere therefore cannot reach it
   through a DNS name it controls (DNS rebinding).

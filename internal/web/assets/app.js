@@ -104,7 +104,7 @@ document.querySelectorAll(".tabs [aria-current], .subtabs [aria-current]").forEa
   };
   // The browser's own errors, in plain words.
   const why = (e) => {
-    if (e && e.name === "NotAllowedError") return "The passkey request was cancelled or timed out.";
+    if (e && e.name === "NotAllowedError") return "The passkey request was canceled or timed out.";
     if (e && e.name === "InvalidStateError") return "That passkey is already added.";
     if (e && e.name === "SecurityError") return "The browser refused passkeys at this address.";
     return (e && e.message) || "Something went wrong.";

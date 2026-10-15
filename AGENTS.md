@@ -20,7 +20,7 @@ UI, apps kept in an optional JSON state file. Notes for contributors and coding 
 
 - Dependencies: Go standard library plus `goxmldsig` and `etree` only. Adding one needs a reason.
 - Every check returns a `check.Result` with a plain-language `Fix` for warnings and failures.
-- Checks run on signature-verified content only; unverified data is labelled as such.
+- Checks run on signature-verified content only; unverified data is labeled as such.
 - Never log or render the client secret. Tokens in the log go through `shortToken`.
 - UI: system fonts, no external assets, CSP `default-src 'self'`. Light and dark themes via CSS tokens
   in `assets/app.css`. Sentence case, no emojis.

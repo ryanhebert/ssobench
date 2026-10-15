@@ -55,7 +55,7 @@ func TestCertIsReused(t *testing.T) {
 	}
 }
 
-// Every module the binary depends on must have its licence in
+// Every module the binary depends on must have its license in
 // THIRD_PARTY_NOTICES.txt, which ships with every release.
 func TestThirdPartyNoticesCoverDependencies(t *testing.T) {
 	mod, err := os.ReadFile("go.mod")

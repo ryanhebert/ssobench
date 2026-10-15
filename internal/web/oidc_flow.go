@@ -219,7 +219,7 @@ func oauthFix(code string) string {
 	case "invalid_scope":
 		return "One of the requested scopes is not allowed for this client."
 	case "access_denied":
-		return "The user cancelled, or isn't allowed to use this application. If they should be, assign the user (or a group they're in) to the application at your identity provider, then test again."
+		return "The user canceled, or isn't allowed to use this application. If they should be, assign the user (or a group they're in) to the application at your identity provider, then test again."
 	case "invalid_request":
 		return "Often a redirect URI that is not registered for this client. At your identity provider, register exactly the redirect URI shown under Set up on the app's page."
 	}
