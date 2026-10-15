@@ -16,20 +16,30 @@ builds:
     ldflags:
       - -s -w -X main.version={{.Version}}
 
+# File names carry no version, so the README can link to
+# releases/latest/download/<name>. Windows gets a bare .exe to double-click;
+# macOS and Linux get a .tar.gz, which keeps the executable bit.
 archives:
   - formats: [tar.gz]
     format_overrides:
       - goos: windows
-        formats: [zip]
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+        formats: [binary]
+    name_template: >-
+      {{ .ProjectName }}-{{ if eq .Os "darwin" }}macos{{ else }}{{ .Os }}{{ end }}-{{ .Arch }}
     files: [LICENSE, README.md, THIRD_PARTY_NOTICES.txt]
 
 checksum:
   name_template: checksums.txt
 
-# A software bill of materials (SPDX) for each archive, made with syft.
+# A software bill of materials (SPDX) for each binary, made with syft.
 sboms:
-  - artifacts: archive
+  - artifacts: binary
+
+release:
+  # The bare Windows binary carries no licence files, so attach them.
+  extra_files:
+    - glob: LICENSE
+    - glob: THIRD_PARTY_NOTICES.txt
 
 changelog:
   sort: asc

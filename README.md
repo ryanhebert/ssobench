@@ -1,5 +1,10 @@
 # SSOBench
 
+[![Latest release](https://img.shields.io/github/v/release/ryanhebert/ssobench?label=latest)](https://github.com/ryanhebert/ssobench/releases/latest)
+[![CI](https://github.com/ryanhebert/ssobench/actions/workflows/ci.yml/badge.svg)](https://github.com/ryanhebert/ssobench/actions/workflows/ci.yml)
+[![Downloads](https://img.shields.io/github/downloads/ryanhebert/ssobench/total?label=downloads)](https://github.com/ryanhebert/ssobench/releases)
+[![License](https://img.shields.io/github/license/ryanhebert/ssobench)](LICENSE)
+
 SSOBench is a self-hosted tool for people setting up or debugging single sign-on. You register it at
 your identity provider as an application, sign in, and it shows what the provider sent: the SAML
 assertion or the OpenID Connect tokens, every attribute and claim, and a list of checks that passed
@@ -12,26 +17,42 @@ or failed, each with a suggested fix.
 
 It supports SAML 2.0, OpenID Connect and OAuth 2.1 (an IETF draft). It checks signatures, audience,
 recipient, issuer, lifetimes and clock skew, replays, weak algorithms, certificate expiry, and a
-signing certificate rotated since the metadata was loaded.
-Beyond single responses, it behaves like a real application: each app has a sign-in page, user
-accounts that SCIM can provision, roles, sessions and single logout. Every attempt gets a
-step-by-step log you can download and attach to a support ticket.
+signing certificate rotated since the metadata was loaded. Beyond single responses, it behaves like
+a real application: each app has a sign-in page, user accounts that SCIM can provision, roles,
+sessions and single logout. Every attempt gets a step-by-step log you can download and attach to a
+support ticket.
 
 It is one executable for Windows, Linux or macOS, with no database. It listens on `localhost` by
 default, so tokens from a real tenant stay on your machine.
 
 ## Quick start
 
-Download the archive for your platform from the
-[releases page](https://github.com/ryanhebert/ssobench/releases) and extract it. The binaries are not
-code-signed yet: on Windows, SmartScreen may warn the first time (choose **More info**, then **Run
-anyway**); on macOS, clear the download quarantine with `xattr -d com.apple.quarantine ssobench`.
+Download the latest version for your computer:
 
-From the extracted folder, run:
+| System | Download |
+|---|---|
+| Windows (x64) | [ssobench-windows-amd64.exe](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-windows-amd64.exe) |
+| Windows (Arm64) | [ssobench-windows-arm64.exe](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-windows-arm64.exe) |
+| macOS (Apple silicon) | [ssobench-macos-arm64.tar.gz](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-macos-arm64.tar.gz) |
+| macOS (Intel) | [ssobench-macos-amd64.tar.gz](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-macos-amd64.tar.gz) |
+| Linux (x64) | [ssobench-linux-amd64.tar.gz](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-linux-amd64.tar.gz) |
+| Linux (Arm64) | [ssobench-linux-arm64.tar.gz](https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-linux-arm64.tar.gz) |
+
+Checksums, software bills of materials and earlier versions are on the
+[releases page](https://github.com/ryanhebert/ssobench/releases).
+
+**Windows:** run the downloaded `.exe`. The binaries are not code-signed yet, so SmartScreen may warn
+the first time; choose **More info**, then **Run anyway**.
+
+**macOS and Linux:** download, extract and run in one step (use the file name for your system):
 
 ```
-./ssobench          # ssobench.exe on Windows
+curl -L https://github.com/ryanhebert/ssobench/releases/latest/download/ssobench-macos-arm64.tar.gz | tar xz ssobench
+./ssobench
 ```
+
+If you downloaded the archive in a browser on macOS instead, clear the quarantine before running it:
+`xattr -d com.apple.quarantine ssobench`.
 
 Your browser opens at `http://localhost:8080`. Choose **New app**, fill in your identity provider's
 details and create it. The app's **Set up** tab then lists the values to register at the identity
