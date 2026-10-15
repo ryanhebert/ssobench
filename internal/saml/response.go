@@ -131,6 +131,9 @@ type Report struct {
 	// DecryptedXML is the assertion after decryption.
 	Encrypted    *EncInfo
 	DecryptedXML string
+	// DecryptProblem is why decryption failed, for the operator's terminal
+	// only: pages show ErrUndecryptable (see encrypt.go).
+	DecryptProblem string
 }
 
 // ParseResponse decodes a Response without verifying anything.
@@ -579,6 +582,7 @@ func decryptInto(rep *Report, enc *etree.Element, key *rsa.PrivateKey, add func(
 	}
 	el, info, err := DecryptAssertion(enc, key)
 	if err != nil {
+		rep.DecryptProblem = DecryptFailure(err)
 		add(check.Bad("Assertion decryption", err.Error(),
 			"Encrypt for this app's encryption certificate, under Set up, with AES-GCM or AES-CBC and RSA-OAEP."))
 		return nil

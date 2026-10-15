@@ -358,6 +358,11 @@ func (s *Server) samlACS(w http.ResponseWriter, r *http.Request) {
 	}
 	if err == nil {
 		s.recordAssertion(rep)
+		if rep.DecryptProblem != "" {
+			// Terminal only: pages and the log show one message for every
+			// decryption failure (saml.ErrUndecryptable).
+			s.logf("%s: assertion decryption failed: %s", app.ID, rep.DecryptProblem)
+		}
 	}
 	if err != nil {
 		s.event(f, LError, "Response", 0, "", "%v", err)

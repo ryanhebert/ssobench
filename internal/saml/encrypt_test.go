@@ -3,6 +3,8 @@ package saml
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/base64"
+	"errors"
 	"strings"
 	"testing"
 
@@ -116,5 +118,49 @@ func TestAuthnRequestOptions(t *testing.T) {
 	md := string(Metadata(SP{EntityID: "e", ACSURL: "a", EncryptionCert: "Q0VSVA==", NameIDFormat: NameIDEmail}))
 	if !strings.Contains(md, `use="encryption"`) || !strings.Contains(md, "<md:NameIDFormat>"+NameIDEmail) {
 		t.Errorf("metadata:\n%s", md)
+	}
+}
+
+// Every secret-dependent failure must look the same from outside, or the
+// result page becomes a padding (CBC) or Bleichenbacher (RSA 1.5) oracle.
+func TestDecryptionFailuresLookAlike(t *testing.T) {
+	key, _ := rsa.GenerateKey(rand.Reader, 2048)
+	other, _ := rsa.GenerateKey(rand.Reader, 2048)
+	plain := []byte(`<saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="a1"><saml:Issuer>x</saml:Issuer></saml:Assertion>`)
+	enc := func(pub *rsa.PublicKey, data, keyAlg string, tamper func([]byte)) *etree.Element {
+		t.Helper()
+		b, err := EncryptAssertion(plain, pub, data, keyAlg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		doc := etree.NewDocument()
+		doc.ReadFromBytes(b)
+		if tamper != nil {
+			cv := doc.FindElement("//EncryptedData/CipherData/CipherValue")
+			ct, _ := base64.StdEncoding.DecodeString(cv.Text())
+			tamper(ct)
+			cv.SetText(base64.StdEncoding.EncodeToString(ct))
+		}
+		return doc.Root()
+	}
+	// The untouched case decrypts, so the tampering below is what fails.
+	if _, _, err := DecryptAssertion(enc(&key.PublicKey, EncAES128CBC, KeyRSA15, nil), key); err != nil {
+		t.Fatalf("control: %v", err)
+	}
+	cases := map[string]*etree.Element{
+		"RSA 1.5 key for another certificate":  enc(&other.PublicKey, EncAES128CBC, KeyRSA15, nil),
+		"RSA-OAEP key for another certificate": enc(&other.PublicKey, EncAES256GCM, KeyRSAOAEP, nil),
+		"CBC padding broken":                   enc(&key.PublicKey, EncAES128CBC, KeyRSAOAEP, func(ct []byte) { ct[len(ct)-17] ^= 0xff }),
+		"CBC first block garbled":              enc(&key.PublicKey, EncAES128CBC, KeyRSAOAEP, func(ct []byte) { ct[0] ^= 0xff }),
+		"GCM tag broken":                       enc(&key.PublicKey, EncAES256GCM, KeyRSAOAEP, func(ct []byte) { ct[len(ct)-1] ^= 1 }),
+	}
+	for name, el := range cases {
+		_, _, err := DecryptAssertion(el, key)
+		if !errors.Is(err, ErrUndecryptable) || err.Error() != ErrUndecryptable.Error() {
+			t.Errorf("%s: %v, want the one undecryptable message", name, err)
+		}
+		if DecryptFailure(err) == "" {
+			t.Errorf("%s: no reason kept for the operator", name)
+		}
 	}
 }

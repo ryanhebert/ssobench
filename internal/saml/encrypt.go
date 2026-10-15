@@ -114,6 +114,27 @@ func cipherValue(el *etree.Element) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(v)
 }
 
+// ErrUndecryptable is the one error every secret-dependent decryption
+// failure returns: a key that does not unwrap, bad padding, a failed GCM tag,
+// or plaintext that is not an assertion. Telling them apart would let
+// whoever posts the response use SSOBench as a padding or Bleichenbacher
+// oracle. DecryptFailure gives the specific reason, for the operator's log.
+var ErrUndecryptable = errors.New("the assertion could not be decrypted with this app's encryption key: it was encrypted for another certificate, or changed on the way")
+
+type undecryptable struct{ reason string }
+
+func (e undecryptable) Error() string        { return ErrUndecryptable.Error() }
+func (e undecryptable) Is(target error) bool { return target == ErrUndecryptable }
+
+// DecryptFailure is the specific reason behind an ErrUndecryptable, or "".
+func DecryptFailure(err error) string {
+	var u undecryptable
+	if errors.As(err, &u) {
+		return u.reason
+	}
+	return ""
+}
+
 // DecryptAssertion decrypts an EncryptedAssertion element with key and
 // returns the assertion as a standalone element, carrying the namespace
 // declarations it relied on from the response.
@@ -182,15 +203,20 @@ func DecryptAssertion(enc *etree.Element, key *rsa.PrivateKey) (*etree.Element, 
 		cek, err = key.Decrypt(rand.Reader, wrapped, &rsa.OAEPOptions{Hash: h, MGFHash: mgf})
 	case KeyRSA15:
 		info.KeyAlg = "RSA PKCS#1 v1.5"
-		cek, err = rsa.DecryptPKCS1v15(rand.Reader, key, wrapped)
+		// A random key of the right size stands in when unwrapping fails, in
+		// constant time, so a bad wrapped key fails later, the same way as
+		// any other undecryptable content.
+		cek = make([]byte, da.key)
+		rand.Read(cek)
+		err = rsa.DecryptPKCS1v15SessionKey(rand.Reader, key, wrapped, cek)
 	default:
 		return nil, info, fmt.Errorf("unsupported key transport algorithm %q", keyAlg)
 	}
 	if err != nil {
-		return nil, info, errors.New("the key could not be decrypted: the assertion was probably encrypted for another certificate")
+		return nil, info, undecryptable{"the content key did not unwrap with this app's key"}
 	}
 	if len(cek) != da.key {
-		return nil, info, fmt.Errorf("the decrypted key is %d bytes, but %s needs %d", len(cek), da.name, da.key)
+		return nil, info, undecryptable{fmt.Sprintf("the content key is %d bytes, but %s needs %d", len(cek), da.name, da.key)}
 	}
 	ct, err := cipherValue(ed)
 	if err != nil {
@@ -198,10 +224,13 @@ func DecryptAssertion(enc *etree.Element, key *rsa.PrivateKey) (*etree.Element, 
 	}
 	plain, err := decryptData(da.block, da.des, cek, ct)
 	if err != nil {
-		return nil, info, fmt.Errorf("%s: %w", da.name, err)
+		return nil, info, undecryptable{da.name + ": " + err.Error()}
 	}
 	el, err := parseFragment(plain, enc)
-	return el, info, err
+	if err != nil {
+		return nil, info, undecryptable{err.Error()}
+	}
+	return el, info, nil
 }
 
 func decryptData(cbc, tripleDES bool, key, ct []byte) ([]byte, error) {
