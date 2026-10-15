@@ -21,7 +21,7 @@ go vet ./...
 
 CI runs these on Linux, Windows and macOS, plus `govulncheck`.
 
-For a larger change, open an issue first so we can agree on the approach. The main conventions are
+For a larger change, open an issue first. The main conventions are
 below; [AGENTS.md](AGENTS.md), the project notes for contributors and coding assistants, has more.
 
 - Dependencies: the Go standard library plus `goxmldsig` and `etree`. A new one needs a good reason.

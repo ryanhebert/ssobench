@@ -2,7 +2,6 @@
 
 [![Latest release](https://img.shields.io/github/v/release/ryanhebert/ssobench?label=latest)](https://github.com/ryanhebert/ssobench/releases/latest)
 [![CI](https://github.com/ryanhebert/ssobench/actions/workflows/ci.yml/badge.svg)](https://github.com/ryanhebert/ssobench/actions/workflows/ci.yml)
-[![Downloads](https://img.shields.io/github/downloads/ryanhebert/ssobench/total?label=downloads&color=blue)](https://github.com/ryanhebert/ssobench/releases)
 [![License](https://img.shields.io/github/license/ryanhebert/ssobench)](LICENSE)
 
 **See exactly what your identity provider sends, and what is wrong with it.**
@@ -12,6 +11,9 @@ failed". SSOBench takes the application's place. Register it at your identity pr
 or OpenID Connect app and sign in. It shows every attribute and claim that arrived, every check that
 passed or failed, and how to fix each failure.
 
+I built it because when single sign-on breaks, the people setting it up rarely get to see what their
+identity provider actually sent.
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/result-dark.png">
   <img alt="A SAML sign-in result: one warning with the fix, then every attribute received" src="docs/images/result-light.png">
@@ -19,17 +21,22 @@ passed or failed, and how to fix each failure.
 
 ## What you can do with it
 
-- Prove a new integration works before the real application is ready, or rule the application out
-  when it is not.
+- Prove a new integration works before the real application is ready, or show that a failure isn't
+  the application's fault.
 - Find out why a sign-in fails: the wrong audience or ACS URL, an expired or rotated certificate, a
   missing attribute, a clock out of sync, a weak algorithm.
+- Check an authorization server against OAuth 2.1 (an IETF draft): PKCE required, the implicit and
+  password grants refused, and tokens for services through client credentials, checked the way an
+  API would check them.
 - Test the whole user lifecycle, with SCIM provisioning, roles, sessions and single logout, against
   an app that behaves like a real one.
 - Give a test user a realistic sign-in page, and get a reference code back when it fails.
 - Attach a step-by-step log of any attempt to a support ticket.
 
 It supports SAML 2.0, OpenID Connect and OAuth 2.1, and runs as a single executable on Windows, macOS
-or Linux. By default it listens only on `localhost`, so tokens stay on your machine.
+or Linux. Unlike hosted debuggers, it runs on your machine, listening only on `localhost` by default,
+so tokens stay there. Unlike a decoder, it acts as the application: it validates signatures,
+provisions over SCIM, and keeps sessions and roles.
 
 ## Quick start
 
@@ -70,6 +77,12 @@ SSOBench shows tokens and assertions in full, because inspecting them is the poi
 own machine or a test server, and if other people can reach it, turn on console sign-in (a password
 or passkeys) under **Settings**. The [guide](docs/guide.md#security) explains what is stored and
 how. To report a vulnerability, see [SECURITY.md](SECURITY.md).
+
+## How it's built
+
+AI coding agents write the code, working from [AGENTS.md](AGENTS.md). I design it, decide what each
+check tests and how it explains a failure, set the dependency limits and the tests, and test it with
+real sign-ins.
 
 ## Contributing
 

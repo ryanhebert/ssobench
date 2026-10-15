@@ -10,6 +10,7 @@ the [quick start](../README.md#quick-start).
 - [Decoding without signing in](#decoding-without-signing-in)
 - [Options](#options)
 - [Running as a service](#running-as-a-service)
+- [Design decisions](#design-decisions)
 - [Security](#security)
 - [Building from source](#building-from-source)
 
@@ -243,6 +244,19 @@ On Windows, use a service wrapper such as [WinSW](https://github.com/winsw/winsw
 [NSSM](https://nssm.cc), or a Task Scheduler task that runs at startup, with the arguments
 `-no-open -listen 127.0.0.1:8080`.
 
+## Design decisions
+
+- It runs on your machine. SSOBench listens on `localhost` by default, so tokens from a real tenant
+  never pass through someone else's server. To test with other people, you run it on a server of
+  your own.
+- It trusts only signed content. Checks read the assertion or token the signature covers, never the
+  document around it, and unverified content is labelled as such.
+- It has two dependencies. Everything else is written on the standard library so each check can
+  explain what it found. The cost is verification code that has to be tested hard, which is why it
+  is fuzz-tested.
+- It plays the application, not the identity provider. Testing an application without a real
+  identity provider is out of scope for now.
+
 ## Security
 
 SSOBench shows tokens and assertions in full, because inspecting them is the point. Run it on your
@@ -260,6 +274,9 @@ in place of a production one.
   - For unattended setups, a password can also be given at start with `-admin-password-file` or the
     `SSOBENCH_ADMIN_PASSWORD` environment variable.
   - If you are locked out, start SSOBench once with `-reset-console-sign-in`.
+- Signatures: SAML checks run only on the content the signature covers, the standard defence against
+  signature wrapping, and tests cover the known wrapping shapes. A response that fails to decrypt
+  gives the same message whatever the cause, so SSOBench cannot be used to probe the encryption key.
 - Host names: SSOBench answers only to IP addresses, `localhost`, this machine's names, the
   `-base-url` host and names given with `-allow-host`. A web page elsewhere therefore cannot reach it
   through a DNS name it controls (DNS rebinding).
@@ -291,10 +308,14 @@ go test ./...
 
 Besides the Go standard library, SSOBench uses two libraries:
 [goxmldsig](https://github.com/russellhaering/goxmldsig) for XML signature verification, and
-[etree](https://github.com/beevik/etree) for XML. The OpenID Connect, OAuth, SCIM and passkey code is
-written on the standard library, so each check can explain exactly what it found. Their licenses are
-in [THIRD_PARTY_NOTICES.txt](../THIRD_PARTY_NOTICES.txt), which ships in every release archive. CI and
-the release build run `govulncheck`.
+[etree](https://github.com/beevik/etree) for XML. Their licenses are in
+[THIRD_PARTY_NOTICES.txt](../THIRD_PARTY_NOTICES.txt), which ships with every release.
+
+The OpenID Connect, OAuth, SCIM and passkey code is written on the standard library, so each check
+can explain exactly what it found. That includes JWT and passkey verification. Both refuse
+`alg=none` and any mismatch between the algorithm and the key (its type, its curve, or the algorithm
+a published key declares), and both are fuzz-tested. If a check accepts something it should not,
+report it as described in [SECURITY.md](../SECURITY.md). CI and the release build run `govulncheck`.
 
 [ROADMAP.md](../ROADMAP.md) lists what is done and what is planned. To contribute, see
 [CONTRIBUTING.md](../CONTRIBUTING.md).
